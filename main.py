@@ -12,8 +12,6 @@ from uuid import uuid4
 import pickle
 import torch
 
-from sentence_transformers import SentenceTransformer, util
-
 class VLite:
     '''
     vlite is a simple vector database that stores vectors in a numpy array.
@@ -21,12 +19,12 @@ class VLite:
     def __init__(self, collection='vlite.pkl'):
         self.collection = collection
         self.model = EmbeddingModel()
-        self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
         # try:
         #     with open(self.collection, 'rb') as f:
         #         self.data = pickle.load(f)
         # except FileNotFoundError:
-        self.text = {}
+
+        self.texts = []
         self.metadata = {}
         self.vectors = np.empty((0, 384))
 
@@ -36,13 +34,13 @@ class VLite:
         chunks = chop_and_chunk(text)
         for chunk in chunks:
             encoded_data = self.model.embed(chunk)
-            encoded_data_bench = self.embedder.encode(chunk)
 
             print("[+] Encoded:", encoded_data.shape)
-            print("[+] Encoded bench:", encoded_data_bench.shape)
 
-            self.text[chunk] = id
-            self.metadata[id] = metadata 
+            self.texts.append(chunk)
+            self.metadata[len(self.texts) - 1] = metadata or {}
+            self.metadata[len(self.texts) - 1]['index'] = len(self.texts) - 1
+            
             self.vectors = np.vstack((self.vectors, encoded_data))   
         
         print("[+] Memorizing with ID:", id)
@@ -63,47 +61,33 @@ class VLite:
             sims = cos_sim(query, corpus)
 
             print("[+] Similarities:", sims)
+
+            sims = sims.flatten()
+
+            top_3_idx = np.argsort(sims)[::-1][:3]
+            print("[+] Top 3 indices:", top_3_idx)
+
+            # iterate over the top 3 most similar sentences
+            for idx in top_3_idx:
+                print("[+] Index:", idx)
+                print("[+] Sentence:", self.texts[idx])
+                print("[+] Metadata:", self.metadata[idx])
+
             
                   
-    def remember_bench(self, text=None):
+    # def remember_bench(self, query, corpus):
 
-        query_embedding = self.model.embed(text)
+    #     query_embedding = self.embedder.encode(query)
+    #     corpus_embeddings = self.embedder.encode(corpus)
 
-        print("[+] Query shape:", query_embedding.shape)
+    #     cos_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
 
-        print("[+] Corpus shape:", self.vectors.shape)
+    #     print("[+] Cos scores:", cos_scores)
 
-        hits = util.semantic_search(query_embedding, self.vectors, top_k=5)
-        hits = hits[0]      #Get the hits for the first query
-        for hit in hits:
-            print("(Score: {:.4f})".format(hit['score']))
+    #     hits = util.semantic_search(query_embedding, corpus_embeddings, top_k=5)
+
+    #     print("[+] Hits:", hits)    
             
     def save(self):
         with open(self.collection, 'wb') as f:
             pickle.dump(self.data, f)
-
-
-
-    # def remove(self, text):
-    #     '''
-    #     Removes the sentence from the database.
-    #     '''
-    #     if text in self.id_to_index:
-    #         index = self.id_to_index[text]
-    #         self.vectors = np.delete(self.vectors, index, 0)
-    #         del self.id_to_index[text]
-    #         for key, value in self.id_to_index.items():
-    #             if value > index:
-    #                 self.id_to_index[key] = value - 1
-    #     else:
-    #         print(f"Text: {text} not found in database.")
-    
-    # def relevancy(self, query, top_k=5):
-    #     '''
-    #     Returns the top_k most relevant sentences in the corpus to the query.
-    #     '''
-    #     query_vector = self.model.embed(query)
-    #     scores = np.dot(self.vectors, query_vector)
-    #     top_k_indices = np.argsort(scores)[-top_k:]
-    #     top_k_texts = {k: v for k, v in self.id_to_index.items() if v in top_k_indices}
-    #     return top_k_texts

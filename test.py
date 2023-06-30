@@ -18,16 +18,14 @@ class TestVLite(unittest.TestCase):
         self.metadata = {"name": "test"}
 
     def test_memorize(self):
-        self.vlite.memorize(text=self.multiple_data)
-        print("[mem] test 1")
-        self.vlite.memorize(text=self.long_data)  
-        print("[mem] test 2")
         self.vlite.memorize(text=self.long_data_2)
-        print("[mem] test 3")
-        # self.vlite.remember_bench(text="civil law")
-        # print("[remember] test 4")
+        print("[test_memorize] memorized")
         self.vlite.remember(text="civil law")
-        print("[remember] test 5")
+        print("[test_memorize] remembered")
+    
+    # def test_sentence_transformers(self):
+    #     self.vlite.remember_bench(query="civil law", corpus=self.long_data_2)
+    #     print("[test_sentence_transformers] test 1")
 
 if __name__ == '__main__':
     unittest.main()
