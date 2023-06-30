@@ -24,24 +24,13 @@ class TestVLite(unittest.TestCase):
         print("[mem] test 2")
         self.vlite.memorize(text=self.long_data_2)
         print("[mem] test 3")
-        self.vlite.remember_bench(text="civil law")
-        print("[remember] test 4")
+        # self.vlite.remember_bench(text="civil law")
+        # print("[remember] test 4")
         self.vlite.remember(text="civil law")
         print("[remember] test 5")
 
-    # def test_remember(self):
-    #     print("[remember] test 4")
-    #     self.vlite.remember(text="civil law")
-
-    # def test_save(self):
-    #     self.vlite.memorize(self.data, self.id, self.metadata)
-    #     self.vlite.save()
-    #     with open('vlite.pkl', 'rb') as f:
-    #         id_to_index, metadata, vectors = pickle.load(f)
-    #     self.assertEqual(id_to_index[self.id], 0)
-    #     self.assertEqual(metadata[self.id], self.metadata)
-    #     self.assertTrue(np.array_equal(vectors[0], self.vec))
-    #     self.assertEqual(vectors.shape, (1, 384))
-
 if __name__ == '__main__':
     unittest.main()
+
+# [[ 0.17383387  0.16366634 -0.0433376   0.02018122  0.10868128  0.02777902
+#    0.16902854  0.50703027  0.27861555  0.42250543  0.28749501  0.47240564]]

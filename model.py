@@ -28,6 +28,9 @@ class EmbeddingModel:
         with torch.no_grad():
             model_output = self.model(**encoded_input)
         embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
+        print("Embeddings shape:", embeddings.shape)
         # embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+        embeddings = np.asarray([emb.numpy() for emb in embeddings])
+        print("Embeddings shape after np:", embeddings.shape)
     
         return embeddings

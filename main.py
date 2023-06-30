@@ -26,7 +26,9 @@ class VLite:
         #     with open(self.collection, 'rb') as f:
         #         self.data = pickle.load(f)
         # except FileNotFoundError:
-        self.data = {}
+        self.text = {}
+        self.metadata = {}
+        self.vectors = np.empty((0, 384))
 
     def memorize(self, text, id=None, metadata=None):
         if not id:
@@ -37,9 +39,11 @@ class VLite:
             encoded_data_bench = self.embedder.encode(chunk)
 
             print("[+] Encoded:", encoded_data.shape)
-            print("[+] Bench:", encoded_data_bench.shape)
-            
-            self.data[id] = {'text': text, 'vectors': encoded_data, 'metadata': metadata}
+            print("[+] Encoded bench:", encoded_data_bench.shape)
+
+            self.text[chunk] = id
+            self.metadata[id] = metadata 
+            self.vectors = np.vstack((self.vectors, encoded_data))   
         
         print("[+] Memorizing with ID:", id)
 
@@ -47,24 +51,16 @@ class VLite:
 
     def remember(self, text=None, id=None, top_k=2):
         if id:
-            return self.data[id]
+            return self.metadata[id]
         
         if text:
             query = self.model.embed(text) 
 
-            corpus = [self.data[i]['vectors'] for i in self.data]
-            # for i in self.data:
-            #     print("[+] seldata:", self.data[i]['vectors'])
+            corpus = self.vectors
 
-            # print shape of query and corpus
             print("[+] Query shape:", query.shape)
 
-            # Initialize an empty list to store the similarities
-            sims = []
-            # Compute the cosine similarity between the query and each vector in the corpus
-            for vector in corpus:
-                vector = vector.flatten()  # Flatten the 2D array into a 1D array
-                sims.append(cos_sim(query, vector))
+            sims = cos_sim(query, corpus)
 
             print("[+] Similarities:", sims)
             
@@ -73,9 +69,11 @@ class VLite:
 
         query_embedding = self.model.embed(text)
 
-        corpus = [self.data[i]['vectors'].flatten() for i in self.data]
+        print("[+] Query shape:", query_embedding.shape)
 
-        hits = util.semantic_search(query_embedding, corpus, top_k=5)
+        print("[+] Corpus shape:", self.vectors.shape)
+
+        hits = util.semantic_search(query_embedding, self.vectors, top_k=5)
         hits = hits[0]      #Get the hits for the first query
         for hit in hits:
             print("(Score: {:.4f})".format(hit['score']))

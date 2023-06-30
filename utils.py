@@ -15,7 +15,7 @@ def chop_and_chunk(text, max_seq_length=128):
     return text
 
 
-def cos_sim(a,b):
+def cos_sim(vec,mat):
     """
     Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
@@ -36,6 +36,13 @@ def cos_sim(a,b):
     # b_norm = torch.nn.functional.normalize(b, p=2, dim=1)
     # return torch.mm(a_norm, b_norm.transpose(0, 1))
 
-    product = np.dot(a, b)
-    norm = np.linalg.norm(a) * np.linalg.norm(b)
-    return product / norm
+    # product = np.dot(a, b)
+    # norm = np.linalg.norm(a) * np.linalg.norm(b)
+    # return product / norm
+
+    sim = vec @ mat.T  # Vector matrix multiplication
+    
+    # Normalize vectors
+    sim /= np.linalg.norm(vec) * np.linalg.norm(mat, axis=1)
+        
+    return sim
