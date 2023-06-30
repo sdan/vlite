@@ -1,9 +1,18 @@
-from sentence_transformers import SentenceTransformer
-
 import numpy as np
 import pickle
 import uuid
 from model import EmbeddingModel
+import torch
+
+from utils import chop_and_chunk, cos_sim
+
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from uuid import uuid4
+import pickle
+import torch
+
+from sentence_transformers import SentenceTransformer, util
 
 class VLite:
     '''
@@ -12,41 +21,69 @@ class VLite:
     def __init__(self, collection='vlite.pkl'):
         self.collection = collection
         self.model = EmbeddingModel()
-        try:
-            with open(self.collection, 'rb') as f:
-                self.text, self.metadata, self.vectors = pickle.load(f)
-        except FileNotFoundError:
-            self.text = []
-            self.metadata = {}
-            self.vectors = np.empty((0, 384))
+        self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
+        # try:
+        #     with open(self.collection, 'rb') as f:
+        #         self.data = pickle.load(f)
+        # except FileNotFoundError:
+        self.data = {}
 
-    def memorize(self, data, id=None, metadata=None):
-        '''
-        Adds data into the database.
+    def memorize(self, text, id=None, metadata=None):
+        if not id:
+            id = str(uuid4())
+        chunks = chop_and_chunk(text)
+        for chunk in chunks:
+            encoded_data = self.model.embed(chunk)
+            encoded_data_bench = self.embedder.encode(chunk)
 
-        Args:
-            data: Text or list of texts to add to the database.
-            id: Optional ID associated with the data.
-            metadata: Optional dictionary of metadata associated with the data.
-        '''
+            print("[+] Encoded:", encoded_data.shape)
+            print("[+] Bench:", encoded_data_bench.shape)
+            
+            self.data[id] = {'text': text, 'vectors': encoded_data, 'metadata': metadata}
+        
+        print("[+] Memorizing with ID:", id)
 
-    def remember(self, data=None, id=None, metadata=None, top_k=2):
-        '''
-        Returns the top 5 most relevant vectors to the data, or matches the id or metadata.
+        print("[Done]")
 
-        Args:
-            data: Optional text to find similar vectors to.
-            id: Optional ID associated with the data.
-            metadata: Optional dictionary of metadata associated with the data.
-        '''
+    def remember(self, text=None, id=None, top_k=2):
+        if id:
+            return self.data[id]
+        
+        if text:
+            query = self.model.embed(text) 
 
+            corpus = [self.data[i]['vectors'] for i in self.data]
+            # for i in self.data:
+            #     print("[+] seldata:", self.data[i]['vectors'])
 
+            # print shape of query and corpus
+            print("[+] Query shape:", query.shape)
+
+            # Initialize an empty list to store the similarities
+            sims = []
+            # Compute the cosine similarity between the query and each vector in the corpus
+            for vector in corpus:
+                vector = vector.flatten()  # Flatten the 2D array into a 1D array
+                sims.append(cos_sim(query, vector))
+
+            print("[+] Similarities:", sims)
+            
+                  
+    def remember_bench(self, text=None):
+
+        query_embedding = self.model.embed(text)
+
+        corpus = [self.data[i]['vectors'].flatten() for i in self.data]
+
+        hits = util.semantic_search(query_embedding, corpus, top_k=5)
+        hits = hits[0]      #Get the hits for the first query
+        for hit in hits:
+            print("(Score: {:.4f})".format(hit['score']))
+            
     def save(self):
-        '''
-        Saves the database to a file.
-        '''
         with open(self.collection, 'wb') as f:
-            pickle.dump((self.id_to_index, self.metadata, self.vectors), f)
+            pickle.dump(self.data, f)
+
 
 
     # def remove(self, text):

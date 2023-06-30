@@ -15,13 +15,19 @@ class EmbeddingModel:
     def __init__(self, model_name='sentence-transformers/all-MiniLM-L6-v2'):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
-        print("Model loaded", self.model)
+        self.dimension = self.model.embeddings.position_embeddings.embedding_dim
+        self.max_seq_length = self.model.embeddings.position_embeddings.num_embeddings
+
+        # print("Model loaded", self.model)
+        print("Dimension:", self.dimension)
+        print("Max sequence length:", self.max_seq_length)
+        
     
-    def embed(self, text):
-        encoded_input = self.tokenizer(text, padding=True, truncation=True, return_tensors='pt')
+    def embed(self, text, max_seq_length=128):
+        encoded_input = self.tokenizer(text, padding=True, truncation=True, return_tensors='pt', max_length=max_seq_length)
         with torch.no_grad():
             model_output = self.model(**encoded_input)
-        sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
-        sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
-
-        return np.asarray([emb.numpy() for emb in sentence_embeddings])
+        embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
+        # embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+    
+        return embeddings

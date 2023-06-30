@@ -1,41 +1,41 @@
 import numpy as np
+import torch
+from torch import Tensor
 import pickle
 
-def normalize_vectors(vectors):
+def chop_and_chunk(text, max_seq_length=128):
     '''
-    Normalizes the vectors for cosine similarity.
+    Chop text into chunks of max_seq_length.
     '''
-    return vectors / np.linalg.norm(vectors, axis=1)[:, None]
 
-def calculate_similarity_scores(normalized_vectors, query_vec):
-    '''
-    Calculates the similarity scores between the normalized vectors and the query vector.
-    '''
-    return np.dot(normalized_vectors, query_vec)
+    # text can be a string or a list of strings
+    if isinstance(text, str):
+        # if text is a string, create a list with the string as the only element
+        text = [text]
+    return text
 
-def get_top_k_indices(similarity_scores, top_k):
-    '''
-    Returns the indices of the top k most relevant vectors.
-    '''
-    return np.argsort(similarity_scores)[-top_k:][::-1]
 
-def get_top_k_ids(id_to_index, top_k_indices):
-    '''
-    Returns the IDs of the top k most relevant vectors.
-    '''
-    return [k for k, v in id_to_index.items() if v in top_k_indices]
+def cos_sim(a,b):
+    """
+    Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
+    :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
+    """
+    # if not isinstance(a, torch.Tensor):
+    #     a = torch.tensor(a)
 
-def save_data(collection, id_to_index, metadata, vectors):
-    '''
-    Saves the data to a file.
-    '''
-    with open(collection, 'wb') as f:
-        pickle.dump((id_to_index, metadata, vectors), f)
+    # if not isinstance(b, torch.Tensor):
+    #     b = torch.tensor(b)
 
-def load_data(collection):
-    '''
-    Loads the data from a file.
-    '''
-    with open(collection, 'rb') as f:
-        id_to_index, metadata, vectors = pickle.load(f)
-    return id_to_index, metadata, vectors
+    # if len(a.shape) == 1:
+    #     a = a.unsqueeze(0)
+
+    # if len(b.shape) == 1:
+    #     b = b.unsqueeze(0)
+
+    # a_norm = torch.nn.functional.normalize(a, p=2, dim=1)
+    # b_norm = torch.nn.functional.normalize(b, p=2, dim=1)
+    # return torch.mm(a_norm, b_norm.transpose(0, 1))
+
+    product = np.dot(a, b)
+    norm = np.linalg.norm(a) * np.linalg.norm(b)
+    return product / norm
