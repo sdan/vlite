@@ -24,13 +24,13 @@ class EmbeddingModel:
     
     def embed(self, text, max_seq_length=256):
         encoded_input = self.tokenizer(text, padding=True, truncation=True, return_tensors='pt')
-        # print("Encoded input shape:", encoded_input['input_ids'].shape)
+        print("Encoded input shape:", encoded_input['input_ids'].shape)
         with torch.no_grad():
             model_output = self.model(**encoded_input)
         embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
-        # print("Embeddings shape:", embeddings.shape)
-        # embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+        embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+        print("Embeddings shape:", embeddings.shape)
         embeddings = np.asarray([emb.numpy() for emb in embeddings])
+        print("Embeddings conv shape:", embeddings.shape)
         # print("Embeddings shape after np:", embeddings.shape)
-    
         return embeddings
