@@ -22,6 +22,8 @@ class TestVLite(unittest.TestCase):
         print("[test_memorize] memorized")
         self.vlite.remember(text="civil law")
         print("[test_memorize] remembered")
+        self.vlite.remember(text="Overall, while common law judges are seen as central figures in shaping and interpreting the law, civil law judges traditionally have more limited roles and are viewed as functionaries. How ever, there are ongoing changes and developments in the civil law tradition that are expanding the scope and power of judges. Legal science, also known as systematic jurisprudence or conceptual jurisprudence, is a dominant school of thought within the civi l law tradition. It emerged in the 19th century and is primarily associated with German legal scholars. Legal science emphasizes the scientific study of law and seeks to discover inherent principles and relationships within legal materials. It aims to crea te a systematic and coherent legal structure by developing")
+        print("[test_memorize] remembered 2")
     
     # def test_sentence_transformers(self):
     #     self.vlite.remember_bench(query="civil law", corpus=self.long_data_2)

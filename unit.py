@@ -1,44 +1,64 @@
 import unittest
-import os
-from uuid import uuid4
+import numpy as np
 from main import VLite
-
+import os
+from utils import load_file
 class TestVLite(unittest.TestCase):
     def setUp(self):
-        self.db = VLite(collection='test.pkl')
+        self.queries = [
+            "What is the architecture of GPT-4?",
+            "How does GPT-4 handle contextual understanding?",
+            "What are the key improvements in GPT-4 over GPT-3?",
+            "How many parameters does GPT-4 have?",
+            "What are the limitations of GPT-4?",
+            "What datasets were used to train GPT-4?",
+            "How does GPT-4 handle longer context?",
+            "What is the computational requirement for training GPT-4?",
+            "What techniques were used to train GPT-4?",
+            "What is the impact of GPT-4 on natural language processing?",
+            "What are the use cases demonstrated in the GPT-4 paper?",
+            "What are the evaluation metrics used in GPT-4's paper?",
+            "What kind of ethical considerations are discussed in the GPT-4 paper?",
+            "How does the GPT-4 handle tokenization?",
+            "What are the novel contributions of the GPT-4 model?"
+        ]
+        self.corpus = load_file('test-data/gpt-4.pdf')
+
+        self.vlite = VLite()
 
     def tearDown(self):
-        # Clean up the test database after each test
-        try:
-            os.remove('test.pkl')
-        except FileNotFoundError:
-            pass
+        # remove the file
+        if os.path.exists('vlite.pkl'):
+            print("[+] Removing vlite.pkl")
+            os.remove('vlite.pkl')
+
+    def test_add_vector(self):
+        self.vlite.add_vector(np.random.rand(384, 384))
+        print("[test_add_vector] Vectors:", self.vlite.vectors)
+        self.assertEqual(self.vlite.vectors.shape, (384, 384))
+
+    def test_get_similar_vectors(self):
+        self.vlite.add_vector(np.random.rand(384, 384))
+        print("[test_get_similar_vectors] Curr Vectors shape:",
+              self.vlite.vectors.shape)
+        indices, sims = self.vlite.get_similar_vectors(np.random.rand(1, 384))
+        print("[test_get_similar_vectors] Indices:", indices)
+        print("[test_get_similar_vectors] Sims:", sims)
+        self.assertEqual(indices.shape, (5,))
 
     def test_memorize(self):
-        id = str(uuid4())
-        self.db.memorize('Hello world', id=id)
-        self.assertEqual(len(self.db.data), 1)
-        self.assertTrue(id in self.db.data)
-
-    def test_remember_by_id(self):
-        id = str(uuid4())
-        self.db.memorize('Hello world', id=id)
-        result = self.db.remember(id=id)
-        self.assertEqual(result['text'], 'Hello world')
-
-    def test_remember_by_text(self):
-        self.db.memorize('Hello world')
-        self.db.memorize('Goodbye world')
-        results = self.db.remember(text='Hello world')
-        self.assertEqual(len(results), 1)
-
-    def test_save(self):
-        id = str(uuid4())
-        self.db.memorize('Hello world', id=id)
-        self.db.save()
-        new_db = VLite(collection='test.pkl')
-        self.assertEqual(len(new_db.data), 1)
-        self.assertTrue(id in new_db.data)
+        self.vlite.memorize(self.corpus)
+        print("[test_memorize] Vectors shape:", self.vlite.vectors.shape)
+        self.assertEqual(self.vlite.vectors.shape[1], 384)
+    
+    def test_remember(self):
+        self.vlite.memorize(self.corpus)
+        print("[test_remember] Memorized shape:", self.vlite.vectors.shape)
+        for query in self.queries:
+            print("[test_remember] Query:", query)
+            _, top_sims = self.vlite.remember(query)
+            print("[test_remember] Top scores:", top_sims)
+            self.assertEqual(len(top_sims), 5)
 
 if __name__ == '__main__':
     unittest.main()
