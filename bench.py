@@ -48,8 +48,9 @@ def main(query, corpus, top_k) -> pd.DataFrame:
     for i in range(len(query)):
         query_vector = query[i]
         t0 = time.time()
-        _, top_sims = vlite.remember(query_vector, top_k=top_k)
+        texts, top_sims = vlite.remember(query_vector, top_k=top_k)
         print(f"Top {top_k} sims: {top_sims}")
+        print(f"Top {top_k} texts: {texts}")
         t1 = time.time()
         times.append(t1 - t0)
 
@@ -88,7 +89,7 @@ def main(query, corpus, top_k) -> pd.DataFrame:
         query_vector = query[i]
         t0 = time.time()
         chroma_results = collection.query(query_texts=[query_vector], n_results=top_k)
-        print(f"Top {top_k} results: {chroma_results['distances']}")
+        print(f"Top {top_k} results: {chroma_results}")
         t1 = time.time()
         times.append(t1 - t0)
     

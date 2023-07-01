@@ -31,12 +31,12 @@ def chop_and_chunk(text, max_seq_length=256):
     return chunks
 
 def cos_sim(a, b):
-    print("[+] A:", a.shape)
-    print("[+] B:", b.shape)
+    # print("[+] A:", a.shape)
+    # print("[+] B:", b.shape)
     b = b.T  # transpose b
-    print("[+] Transposed B:", b.shape)
+    # print("[+] Transposed B:", b.shape)
     result = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b, axis=0))
-    print("[+] Result:", result.shape)
+    # print("[+] Result:", result.shape)
     return result
 
 

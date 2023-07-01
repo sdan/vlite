@@ -21,19 +21,20 @@ class VLite:
     
     def add_vector(self, vector):
         self.vectors = np.vstack((self.vectors, vector))
+
     def get_similar_vectors(self, vector, top_k=5):
         sims = cos_sim(vector, self.vectors)
         sims = sims[0]
-        print("[get_similar_vectors] Sims:", sims.shape)
+        # print("[get_similar_vectors] Sims:", sims.shape)
         top_k_idx = np.argsort(sims)[::-1][:top_k]
-        print("[get_similar_vectors] Top k idx:", top_k_idx)
-        print("[get_similar_vectors] Top k sims:", sims[top_k_idx])
+        # print("[get_similar_vectors] Top k idx:", top_k_idx)
+        # print("[get_similar_vectors] Top k sims:", sims[top_k_idx])
         return top_k_idx, sims[top_k_idx]
 
     def memorize(self, text, id=None, metadata=None):
         id = id or str(uuid4())
-        chunks = chop_and_chunk(text)
-        # print("[+] Chunks:", chunks)
+        # chunks = chop_and_chunk(text)
+        # # print("[+] Chunks:", chunks)
         for chunk in text:
             encoded_data = self.model.embed(chunk)
             self.texts.append(chunk)
@@ -47,12 +48,12 @@ class VLite:
         if id:
             return self.metadata[id]
         if text:
-            print("[remember] Text:", text)
-            print("[remember] Text shape:", self.model.embed(text).shape)
-            print("[remember] Vectors shape:", self.vectors.shape)
+            # print("[remember] Text:", text)
+            # print("[remember] Text shape:", self.model.embed(text).shape)
+            # print("[remember] Vectors shape:", self.vectors.shape)
             sims = cos_sim(self.model.embed(text) , self.vectors)
             sims = sims[0]
-            print("[remember] Sims flat:", sims.shape)
+            # print("[remember] Sims flat:", sims.shape)
 
             # Use np.argpartition to partially sort only the top 5 values
             top_5_idx = np.argpartition(sims, -5)[-5:]  
@@ -60,7 +61,7 @@ class VLite:
             # Use np.argsort to sort just those top 5 indices
             top_5_idx = top_5_idx[np.argsort(sims[top_5_idx])[::-1]]  
 
-            print("[remember] Top k sims:", sims[top_5_idx])
+            # print("[remember] Top k sims:", sims[top_5_idx])
             return [self.texts[idx] for idx in top_5_idx], sims[top_5_idx]
             
     def save(self):
