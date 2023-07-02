@@ -3,8 +3,14 @@ import numpy as np
 from main import VLite
 import os
 from utils import load_file
+import cProfile
+from pstats import Stats
+
 class TestVLite(unittest.TestCase):
     def setUp(self):
+        self.pr = cProfile.Profile()
+        self.pr.enable()
+
         self.queries = [
             "What is the architecture of GPT-4?",
             "How does GPT-4 handle contextual understanding?",
@@ -27,10 +33,18 @@ class TestVLite(unittest.TestCase):
         self.vlite = VLite()
 
     def tearDown(self):
+        p = Stats (self.pr)
+        
+
         # remove the file
         if os.path.exists('vlite.pkl'):
             print("[+] Removing vlite.pkl")
             os.remove('vlite.pkl')
+
+        p.strip_dirs()
+        p.sort_stats ('cumtime')
+        p.print_stats ()
+
 
     def test_add_vector(self):
         self.vlite.add_vector(np.random.rand(384, 384))

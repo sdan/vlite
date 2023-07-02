@@ -33,9 +33,9 @@ class VLite:
 
     def memorize(self, text, id=None, metadata=None):
         id = id or str(uuid4())
-        # chunks = chop_and_chunk(text)
-        # # print("[+] Chunks:", chunks)
-        for chunk in text:
+        chunks = chop_and_chunk(text)
+        # print("[+] Chunks:", chunks)
+        for chunk in chunks:
             encoded_data = self.model.embed(chunk)
             self.texts.append(chunk)
             self.metadata[len(self.texts) - 1] = metadata or {}
@@ -44,19 +44,17 @@ class VLite:
 
         self.save()
         return id, self.vectors
+
     def remember(self, text=None, id=None, top_k=5):
         if id:
             return self.metadata[id]
         if text:
-            # print("[remember] Text:", text)
-            # print("[remember] Text shape:", self.model.embed(text).shape)
-            # print("[remember] Vectors shape:", self.vectors.shape)
+
             sims = cos_sim(self.model.embed(text) , self.vectors)
             sims = sims[0]
-            # print("[remember] Sims flat:", sims.shape)
 
             # Use np.argpartition to partially sort only the top 5 values
-            top_5_idx = np.argpartition(sims, -5)[-5:]  
+            top_5_idx = np.argpartition(sims, -top_k)[-top_k:]  
 
             # Use np.argsort to sort just those top 5 indices
             top_5_idx = top_5_idx[np.argsort(sims[top_5_idx])[::-1]]  
