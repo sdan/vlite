@@ -34,14 +34,13 @@ class VLite:
     def memorize(self, text, id=None, metadata=None):
         id = id or str(uuid4())
         chunks = chop_and_chunk(text)
-        # print("[+] Chunks:", chunks)
+        encoded_data = self.model.embed(chunks)
+        self.vectors = np.vstack((self.vectors, encoded_data))
         for chunk in chunks:
-            encoded_data = self.model.embed(chunk)
             self.texts.append(chunk)
-            self.metadata[len(self.texts) - 1] = metadata or {}
-            self.metadata[len(self.texts) - 1]['index'] = id or len(self.texts) - 1
-            self.vectors = np.vstack((self.vectors, encoded_data)) 
-
+            idx = len(self.texts) - 1
+            self.metadata[idx] = metadata or {}
+            self.metadata[idx]['index'] = id or idx
         self.save()
         return id, self.vectors
 
@@ -51,6 +50,7 @@ class VLite:
         if text:
 
             sims = cos_sim(self.model.embed(text) , self.vectors)
+            print("[remember] Sims:", sims.shape)
             sims = sims[0]
 
             # Use np.argpartition to partially sort only the top 5 values
@@ -64,4 +64,4 @@ class VLite:
             
     def save(self):
         with open(self.collection, 'wb') as f:
-            pickle.dump((self.texts, self.metadata, self.vectors), f)
+            np.savez(f, texts=self.texts, metadata=self.metadata, vectors=self.vectors)
