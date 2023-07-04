@@ -1,0 +1,16 @@
+# Python
+*.pyc
+__pycache__
+
+# Test data
+test-data/*
+
+# CSV files
+*.csv
+
+# Numpy data files
+*.npz
+
+# PDF files
+*.pdf
+
