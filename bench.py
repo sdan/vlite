@@ -3,15 +3,18 @@ import numpy as np
 import pandas as pd
 import json
 from main import VLite
-from utils import load_file, chop_and_chunk
+from utils import load_file, chop_and_chunk, token_count
 import os
 import chromadb
 from chromadb.utils import embedding_functions
 import cProfile
 from pstats import Stats
 
+import pinecone
+from sentence_transformers import SentenceTransformer
+import tqdm
 
-def main(query, corpus, top_k) -> pd.DataFrame:
+def main(query, corpus, top_k, token_count) -> pd.DataFrame:
     """Run the benchmarks.
 
     Parameters
@@ -26,6 +29,7 @@ def main(query, corpus, top_k) -> pd.DataFrame:
     results : A DataFrame containing results from all benchmarks.
     """
     results = []
+    indexing_times = []
 
 
     #################################################
@@ -49,6 +53,13 @@ def main(query, corpus, top_k) -> pd.DataFrame:
     # stats.strip_dirs().sort_stats("time").print_stats()
 
     print(f"Took {t1 - t0:.3f}s to add vectors.")
+    indexing_times.append(
+        {
+            "num_tokens": token_count,
+            "lib": "VLite",
+            "num_embeddings": vecs.shape[0],
+            "indexing_time": t1 - t0,
+        })
 
     print("Starting VLite trials...")
     
@@ -63,7 +74,8 @@ def main(query, corpus, top_k) -> pd.DataFrame:
         # print(f"Top {top_k} sims: {top_sims}")
         # print(f"Top {top_k} texts: {texts}")
         t1 = time.time()
-        times.append(t1 - t0)
+        times.append(t1 - 
+                     t0)
 
     results.append(
         {
@@ -74,10 +86,6 @@ def main(query, corpus, top_k) -> pd.DataFrame:
             "stddev_time": np.std(times),
         }
     )
-
-        # stats = Stats(pr)
-        # stats.strip_dirs().sort_stats("time").print_stats()
-
 
     print(json.dumps(results[-1], indent=2))
     print("Done VLite")
@@ -97,6 +105,14 @@ def main(query, corpus, top_k) -> pd.DataFrame:
 
     t1 = time.time()
     print(f"Took {t1 - t0:.3f}s to add vectors.")
+    indexing_times.append(
+        {
+            "num_tokens": token_count,
+            "lib": "Chroma",
+            "num_embeddings": len(corpus),
+            "indexing_time": t1 - t0,
+        }
+    )
 
     print("Starting Chroma trials...")
     times = []
@@ -121,13 +137,108 @@ def main(query, corpus, top_k) -> pd.DataFrame:
     #################################################
     #                 Pinecone                      #
     #################################################
+    print("Begin Pinecone benchmark.")
+    print("Initializing Pinecone...")
+    t0 = time.time()
+
+    pinecone.init(api_key="1de0e65b-6645-4139-a8c3-4b8b5f1dfdb0", environment="us-east-1-aws")
+    index_name = "quickstart"
+
+    if index_name not in pinecone.list_indexes():
+        pinecone.create_index(name=index_name, dimension=384, metric="cosine")
+
+    # now connect to the index
+    index = pinecone.Index(index_name)
+
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    t1 = time.time()
+    print(f"Took {t1 - t0:.3f}s to initialize")
+
+    t0 = time.time()
+    print("Adding vectors to Pinecone instance...")
+    batch_size = 128
+    for i in tqdm.tqdm(range(0, len(corpus), batch_size)):
+        print("Finding end of batch")
+        # find end of batch
+        i_end = min(i+batch_size, len(corpus))
+        print("Creating IDs batch")
+        # create IDs batch
+        ids = [str(x) for x in range(i, i_end)]
+        # create metadata batch
+        metadatas = [{'text': text} for text in corpus[i:i_end]]
+        print("Creating embeddings")
+        # create embeddings
+        embeddings = model.encode(corpus[i:i_end]).tolist()
+        print("Creating records list for upsert")
+        # create records list for upsert
+        # print("Zipping IDs and embeddings")
+        # print("IDs: ", ids)
+        # print("Embeddings: ", embeddings)
+        # print("Metadatas: ", metadatas)
+        records = zip(ids, embeddings, metadatas)
+        print("Upserting to Pinecone")
+        # upsert to Pinecone
+        index.upsert(vectors=records)
+
+    t1 = time.time()
+    print(f"Took {t1 - t0:.3f}s to add vectors.")
+    indexing_times.append(
+        {
+            "num_tokens": token_count,
+            "lib": "Pinecone",
+            "num_embeddings": len(corpus),
+            "indexing_time": t1 - t0,
+        }
+    )
+
+
+    # Query Pinecone
+    print("Starting Pinecone trials...")
+    times = []
+    for query_text in query:
+        # create the query vector
+        query_vector = model.encode([query_text]).tolist()
+        # now query
+        t0 = time.time()
+        xq = index.query(query_vector, top_k=5, include_metadata=True)
+        t1 = time.time()
+        times.append(t1 - t0)
+        
+        print(f"Top 5 results for '{query_text}'")
+        for result in xq['matches']:
+            print(f"{round(result['score'], 2)}")
+
+    print("results: ", len(corpus))
+    print("times: ", times)
+    print("top_k: ", top_k)
+
+    results.append(
+        {
+            "num_embeddings": len(corpus),
+            "lib": "Pinecone",
+            "k": top_k,
+            "avg_time": np.mean(times),
+            "stddev_time": np.std(times),
+        }
+    )
 
     #################################################
-    #                  pgvector                     #
+    #                  tinyvector                   #
     #################################################
+
+    #################################################
+    #                  qdrant                       #
+    #################################################
+
+    #################################################
+    #                  milvus                       #
+    #################################################
+
 
     results = pd.DataFrame(results)
-    return results
+    indexing_times = pd.DataFrame(indexing_times)
+    return results, indexing_times
 
 if __name__ == "__main__":
     # Benchmark Config
@@ -150,12 +261,14 @@ if __name__ == "__main__":
             "What are the novel contributions of the GPT-4 model?"
         ]
     corpus = load_file('test-data/gpt-4.pdf')
-    corpus = chop_and_chunk(text=corpus)
-
-    print("corp chop", corpus)
-    print("corp len", len(corpus))
+    chopped_corpus = chop_and_chunk(text=corpus)
+    token_count = token_count(chopped_corpus)
+    print("token count", token_count)
+    print("corp len", len(chopped_corpus))
     
 
-    results = main(queries, corpus, k)
+    results, indexing_times = main(queries, chopped_corpus, k, token_count)
     print(results)
+    print(indexing_times)
     results.to_csv("vlite_benchmark_results.csv", index=False)
+    indexing_times.to_csv("vlite_benchmark_indexing_times.csv", index=False)

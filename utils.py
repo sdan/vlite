@@ -4,6 +4,8 @@ from torch import Tensor
 import pickle
 import pysbd
 import PyPDF2
+import itertools
+from transformers import AutoTokenizer, AutoModel
 
 # def chop_and_chunk(text, max_seq_length=256):
 #     if isinstance(text, str):
@@ -71,7 +73,6 @@ def cos_sim(a, b):
     sims /= np.linalg.norm(a) * np.linalg.norm(b, axis=1) 
     return sims
 
-
 def load_file(pdf_path):
     extracted_text = []
     with open(pdf_path, "rb") as file:
@@ -79,3 +80,17 @@ def load_file(pdf_path):
         for page in iter(reader.pages):
             extracted_text.append(page.extract_text())  
     return extracted_text
+
+def visualize_tokens(token_values: list[str]) -> None:
+        backgrounds = itertools.cycle(
+            ["\u001b[48;5;{}m".format(i) for i in [167, 179, 185, 77, 80, 68, 134]]
+        )
+        interleaved = itertools.chain.from_iterable(zip(backgrounds, token_values))
+        print(("".join(interleaved) + "\u001b[0m"))
+
+def token_count(texts):
+        tz = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2', use_fast=True)
+        tokens = 0
+        for text in texts:
+            tokens+=len(tz.tokenize(text, padding=True, truncation=True))
+        return tokens
