@@ -1,5 +1,4 @@
 import numpy as np
-import pickle
 from uuid import uuid4
 from model import EmbeddingModel
 from utils import chop_and_chunk, cos_sim

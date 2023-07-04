@@ -1,10 +1,7 @@
-from transformers import AutoTokenizer, AutoModel
 import torch
-import numpy as np
-import tiktoken
-import regex
-from utils import visualize_tokens
+from transformers import AutoModel, AutoTokenizer
 
+from utils import visualize_tokens
 
 #Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask, device="mps"):
@@ -23,7 +20,7 @@ class EmbeddingModel:
 
         self.model = AutoModel.from_pretrained(model_name)
         self.dimension = self.model.embeddings.position_embeddings.embedding_dim
-        self.max_seq_length = self.model.embeddings.position_embeddings.num_embeddings\
+        self.max_seq_length = self.model.embeddings.position_embeddings.num_embeddings
         
 
         print("Tokenizer:", self.tokenizer)
@@ -45,7 +42,7 @@ class EmbeddingModel:
         tensor_embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
         np_embeddings = tensor_embeddings.cpu().numpy()  # Move tensor to CPU before converting to numpy
 
-
+        # Visualize tokens with colors
         # tokens = [self.tokenizer.decode([input_id]) for row in encoded_input['input_ids'] for input_id in row]
         # visualize_tokens(tokens)
 

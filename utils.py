@@ -1,7 +1,4 @@
 import numpy as np
-import torch
-from torch import Tensor
-import pickle
 import pysbd
 import PyPDF2
 import itertools

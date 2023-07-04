@@ -14,3 +14,4 @@ test-data/*
 # PDF files
 *.pdf
 
+.chroma/*
