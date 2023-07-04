@@ -3,6 +3,7 @@ import pysbd
 import PyPDF2
 import itertools
 from transformers import AutoTokenizer, AutoModel
+import regex as re
 
 # def chop_and_chunk(text, max_seq_length=256):
 #     if isinstance(text, str):
