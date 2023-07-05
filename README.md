@@ -9,7 +9,9 @@ a blazing fast, lightweight, and simple vector database written in less than 200
 ```python
 from vlite import VLite
 
-db = VLite()
+db = VLite() # default mps
+
+# db = VLite(device="cpu") # to run on cpu
 
 db.memorize(["hello world"]*5)
 
