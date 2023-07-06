@@ -7,10 +7,10 @@ class VLite:
     '''
     vlite is a simple vector database that stores vectors in a numpy array.
     '''
-    def __init__(self, collection='vlite.npz',device='mps'):
+    def __init__(self, collection='vlite.npz',device='mps',model_name=None):
         self.collection = collection
         self.device = device
-        self.model = EmbeddingModel()
+        self.model = EmbeddingModel() if model_name is None else EmbeddingModel(model_name)
         try:
             with np.load(self.collection, allow_pickle=True) as data:
                 self.texts = data['texts'].tolist()
