@@ -326,6 +326,11 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         #                  qdrant                       #
         #################################################
         qdrant_client = QdrantClient(
+            ":memory:", # fast, wraps numpy
+
+            # persistent, scalable
+            # url="<your-qdrant-instance-url-here>",
+            # api_key="<your-api-key-here>",
         )
 
         qdrant_client.recreate_collection(
