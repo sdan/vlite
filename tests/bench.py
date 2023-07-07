@@ -2,8 +2,6 @@ import time
 import numpy as np
 import pandas as pd
 import json
-from main import VLite
-from utils import load_file, chop_and_chunk, token_count
 import os
 import chromadb
 from chromadb.utils import embedding_functions
@@ -19,6 +17,13 @@ import uuid
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
+
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from vlite import main, utils
+from vlite.main import VLite
+from vlite.utils import load_file, chop_and_chunk, token_count
 
 
 def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
@@ -55,7 +60,11 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         t0 = time.time()
 
         vlite = VLite()
-        _, vecs = vlite.memorize(corpus)
+        try:
+            _, vecs = vlite.memorize(corpus)
+        except Exception as e:
+            print(e)
+            continue
 
         t1 = time.time()
 
@@ -74,7 +83,11 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         for i in range(len(query)):
             query_vector = query[i]
             t0 = time.time()
-            texts, top_sims = vlite.remember(query_vector, top_k=top_k)
+            try:
+                texts, top_sims = vlite.remember(query_vector, top_k=top_k)
+            except Exception as e:
+                print(e)
+                continue
             print(top_sims)
             # print(f"Top {top_k} sims: {top_sims}")
             # print(f"Top {top_k} texts: {texts}")
@@ -106,7 +119,12 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         collection = chroma_client.create_collection(name="my_collection")
         # generate list of ids that is the length of the corpus
         ids = [str(i) for i in range(len(corpus))]
-        collection.add(documents=corpus, ids=ids)
+        try:
+            collection.add(documents=corpus, ids=ids)
+        except Exception as e:
+            print(e)
+            print("Failed to add documents to Chroma collection.")
+            t0 = time.time()
 
         t1 = time.time()
         print(f"Took {t1 - t0:.3f}s to add vectors.")
@@ -125,8 +143,13 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         for i in range(len(query)):
             query_vector = query[i]
             t0 = time.time()
-            chroma_results = collection.query(
-                query_texts=[query_vector], n_results=top_k)
+            try:
+                chroma_results = collection.query(
+                    query_texts=[query_vector], n_results=top_k)
+            except Exception as e:
+                print(e)
+                print("Failed to query Chroma collection.")
+                t0 = time.time()
             print(f"Top {top_k} results: {chroma_results['distances']}")
             t1 = time.time()
             times.append(t1 - t0)
@@ -148,7 +171,6 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         print("Initializing Pinecone...")
         t0 = time.time()
 
-        pinecone.init(api_key="<your-api-key>",
                     environment="us-east-1-aws")
         index_name = "quickstart"
 
@@ -208,7 +230,12 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
             query_vector = model.encode([query_text]).tolist()
             # now query
             t0 = time.time()
-            xq = index.query(query_vector, top_k=5, include_metadata=True)
+            try:
+                xq = index.query(query_vector, top_k=5, include_metadata=True)
+            except Exception as e:
+                print("Exception: ", e)
+                t0 = time.time()
+                continue
             t1 = time.time()
             times.append(t1 - t0)
 
@@ -249,11 +276,15 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         })
         print("Status code: ", response.status_code)
         print("Creating tinyvector index")
-        response = requests.post(f"{base_url}/create_index", json={
-            "table_name": table_name,
-            "index_types": index_types
-        })
-        print("Status code: ", response.status_code)
+        try:
+            response = requests.post(f"{base_url}/create_index", json={
+                "table_name": table_name,
+                "index_types": index_types
+            })
+            print("Status code: ", response.status_code)
+        except:
+            print("Error tinyvector index already exists")
+            t0 = time.time()
 
         t1 = time.time()
         print(f"Took {t1 - t0:.3f}s to initialize")
@@ -266,12 +297,17 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
             print("[tinyvec] vector: ", i)
             print("[tinyvec] vector: ", embeddings[0])
             print("[tinyvec] corpus: ", corpus[i])
-            response = requests.post(f"{base_url}/insert", json={
-                "table_name": table_name,
-                "ids": [i],
-                "vectors": embeddings[0],
-                "content": corpus[i]
-            })
+            try:
+                response = requests.post(f"{base_url}/insert", json={
+                    "table_name": table_name,
+                    "ids": [i],
+                    "vectors": embeddings[0],
+                    "content": corpus[i]
+                })
+            except:
+                print("Error inserting vector")
+                t0 = time.time()
+                break
 
         t1 = time.time()
         print(f"Took {t1 - t0:.3f}s to add vectors.")
@@ -290,8 +326,6 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         #                  qdrant                       #
         #################################################
         qdrant_client = QdrantClient(
-            url="<your-qdrant-instance-url-here>",
-            api_key="<your-api-key-here>",
         )
 
         qdrant_client.recreate_collection(
@@ -306,17 +340,22 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         model = SentenceTransformer('all-MiniLM-L6-v2')
         vectors = model.encode(corpus).tolist()
 
-        qdrant_client.upsert(
-            collection_name="my_collection",
-            points=[
-                PointStruct(
-                    id=idx,
-                    vector=model.encode(vector).tolist(),
-                    payload={"text": corpus[idx]}
-                )
-                for idx, vector in enumerate(corpus)
-            ]
-        )
+        try:
+            qdrant_client.upsert(
+                collection_name="my_collection",
+                points=[
+                    PointStruct(
+                        id=idx,
+                        vector=model.encode(vector).tolist(),
+                        payload={"text": corpus[idx]}
+                    )
+                    for idx, vector in enumerate(corpus)
+                ]
+            )
+        except Exception as e:
+            print(e)
+            print("Failed to upsert vectors to Qdrant instance.")
+            t0 = time.time()
 
         t1 = time.time()
 
@@ -335,13 +374,18 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         for i in range(len(query)):
             query_vector = model.encode(query[i]).tolist()
             t0 = time.time()
-            hits = qdrant_client.search(
-                collection_name="my_collection",
-                query_vector=query_vector,
-                limit=top_k  # Return top_k closest points
-            )
-            # print("Top hits: ", hits)
-            t1 = time.time()
+            try:
+                hits = qdrant_client.search(
+                    collection_name="my_collection",
+                    query_vector=query_vector,
+                    limit=top_k  # Return top_k closest points
+                )
+                # print("Top hits: ", hits)
+                t1 = time.time()
+            except Exception as e:
+                print(e)
+                print("Failed to query Qdrant instance.")
+                t0 = time.time()
             times.append(t1 - t0)
 
         print(f"Took {t1 - t0:.3f}s to query.")
@@ -364,6 +408,10 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         #################################################
 
         # too complicated docs
+        temp_results = pd.DataFrame(results)
+        temp_indexing_times = pd.DataFrame(indexing_times)
+        temp_results.to_csv("temp_vlite_benchmark_query.csv", index=False)
+        temp_indexing_times.to_csv("temp_vlite_benchmark_index.csv", index=False)
 
     results = pd.DataFrame(results)
     indexing_times = pd.DataFrame(indexing_times)
@@ -414,8 +462,8 @@ if __name__ == "__main__":
     chopped_corpus = chop_and_chunk(text=corpus)
     token_count = token_count(chopped_corpus)
 
-    benchmark_corpuss = [chopped_corpus, chopped_corpus*2, chopped_corpus*5, chopped_corpus*10]
-    benchmark_token_counts = [token_count, token_count*2, token_count*5, token_count*10]
+    benchmark_corpuss = [chopped_corpus, chopped_corpus*2, chopped_corpus*4, chopped_corpus*16, chopped_corpus*64]
+    benchmark_token_counts = [token_count, token_count*2, token_count*4, token_count*16, token_count*64]
 
     print("token count", token_count)
     print("corp len", len(chopped_corpus))

@@ -29,12 +29,28 @@ class EmbeddingModel:
 
     def embed(self, texts, max_seq_length=256, device="mps"):
 
-        device = torch.device(device)  # Create a torch.device object
+        if(torch.backends.mps.is_available()):
+            print("MPS is available")
+            dev = torch.device("mps")
+        else:
+            print("MPS is not available")
+            dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        device = torch.device(dev)  # Create a torch.device object
+        print("Device:", device)
         self.model.to(device)  # Move the model to the specified device
 
         encoded_input = self.tokenizer(texts, padding=True, truncation=True, return_tensors='pt', max_length=max_seq_length)
+        print("Encoded input done",encoded_input['input_ids'].shape)
+        
+        if encoded_input['input_ids'].shape[0] > 1300:
+            print("Encoded input too large, defaulting to CPU")
+            device = torch.device("cpu")
+            self.model.to(device)  # Move the model to the specified device
+        
         encoded_input = {name: tensor.to(device) for name, tensor in encoded_input.items()}  # Move all input tensors to the specified device
-
+        print("Encoded input moved to device")
+        
         with torch.no_grad():
             model_output = self.model(**encoded_input)
 
@@ -43,8 +59,8 @@ class EmbeddingModel:
         np_embeddings = tensor_embeddings.cpu().numpy()  # Move tensor to CPU before converting to numpy
 
         # Visualize tokens with colors
-        tokens = [self.tokenizer.decode([input_id]) for row in encoded_input['input_ids'] for input_id in row]
-        visualize_tokens(tokens)
+        # tokens = [self.tokenizer.decode([input_id]) for row in encoded_input['input_ids'] for input_id in row]
+        # visualize_tokens(tokens)
 
         return np_embeddings
 
