@@ -7,9 +7,10 @@ class VLite:
     '''
     vlite is a simple vector database that stores vectors in a numpy array.
     '''
-    def __init__(self, collection='vlite.npz'):
+    def __init__(self, collection='vlite.npz',device='mps',model_name=None):
         self.collection = collection
-        self.model = EmbeddingModel()
+        self.device = device
+        self.model = EmbeddingModel() if model_name is None else EmbeddingModel(model_name)
         try:
             with np.load(self.collection, allow_pickle=True) as data:
                 self.texts = data['texts'].tolist()
@@ -35,7 +36,7 @@ class VLite:
     def memorize(self, text, id=None, metadata=None):
         id = id or str(uuid4())
         chunks = chop_and_chunk(text)
-        encoded_data = self.model.embed(texts=chunks, device="mps")
+        encoded_data = self.model.embed(texts=chunks, device=self.device)
         self.vectors = np.vstack((self.vectors, encoded_data))
         for chunk in chunks:
             self.texts.append(chunk)
@@ -50,7 +51,7 @@ class VLite:
             return self.metadata[id]
         if text:
 
-            sims = cos_sim(self.model.embed(texts=text, device="cpu") , self.vectors)
+            sims = cos_sim(self.model.embed(texts=text, device=self.device) , self.vectors)
             print("[remember] Sims:", sims.shape)
             sims = sims[0]
 

@@ -2,6 +2,7 @@ import numpy as np
 import pysbd
 import PyPDF2
 import itertools
+from typing import List
 from transformers import AutoTokenizer, AutoModel
 import regex as re
 
@@ -79,7 +80,7 @@ def load_file(pdf_path):
             extracted_text.append(page.extract_text())  
     return extracted_text
 
-def visualize_tokens(token_values: list[str]) -> None:
+def visualize_tokens(token_values: List[str]) -> None:
         backgrounds = itertools.cycle(
             ["\u001b[48;5;{}m".format(i) for i in [167, 179, 185, 77, 80, 68, 134]]
         )
