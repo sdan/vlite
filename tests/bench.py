@@ -170,8 +170,7 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         print("Begin Pinecone benchmark.")
         print("Initializing Pinecone...")
         t0 = time.time()
-
-                    environment="us-east-1-aws")
+        environment="us-east-1-aws"
         index_name = "quickstart"
 
         if index_name not in pinecone.list_indexes():
