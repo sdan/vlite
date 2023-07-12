@@ -62,14 +62,17 @@ class VLite:
             print("[remember] Sims:", sims.shape)
             sims = sims[0]
 
-            # Use np.argpartition to partially sort only the top 5 values
-            top_5_idx = np.argpartition(sims, -top_k)[-top_k:]  
+			# top_k cannot be higher than the number of similarities returned
+            top_k = min(top_k, len(sims))
 
-            # Use np.argsort to sort just those top 5 indices
-            top_5_idx = top_5_idx[np.argsort(sims[top_5_idx])[::-1]]  
+            # Use np.argpartition to partially sort only the top k values
+            top_k_idx = np.argpartition(sims, -top_k)[-top_k:]  
 
-            # print("[remember] Top k sims:", sims[top_5_idx])
-            return [self.texts[idx] for idx in top_5_idx], sims[top_5_idx]
+            # Use np.argsort to sort just those top k indices
+            top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]  
+
+            # print("[remember] Top k sims:", sims[top_k_idx])
+            return [self.texts[idx] for idx in top_k_idx], sims[top_k_idx]
             
     def save(self):
         with open(self.collection, 'wb') as f:
