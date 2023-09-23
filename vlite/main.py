@@ -138,7 +138,7 @@ class VLite:
         DEBUG (bool): Print debug information. Repo maintainer use only.
         """
         if id:
-            return self.metadata[id]
+            return self.data[id]
         if text:
 
             sims = cos_sim(self.model.embed(texts=text, device=self.device) , self.vectors)
