@@ -15,50 +15,54 @@ class VLite:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection = f"vlite_{current_datetime}.npz"
             
-        self.collection = collection
-        self.device = device
-        self.model = EmbeddingModel() if model_name is None else EmbeddingModel(model_name)
+        self._collection = collection
+        self._device = device
+        self._model = EmbeddingModel() if model_name is None else EmbeddingModel(model_name)
         try:
-            with np.load(self.collection, allow_pickle=True) as data:
-                self.texts = data['texts'].tolist()
-                self.metadata = data['metadata'].tolist()
-                self.vectors = data['vectors']
+            with np.load(self._collection, allow_pickle=True) as data:
+                self._texts = data['texts'].tolist()
+                self._metadata = data['metadata'].tolist()
+                self._vectors = data['vectors']
         except FileNotFoundError:
-            self.texts = []
-            self.metadata = {}
-            self.vectors = np.empty((0, self.model.dimension))
+            self._texts = []
+            self._metadata = {}
+            self._vectors = np.empty((0, self._model.dimension))
     
     def add_vector(self, vector):
-        self.vectors = np.vstack((self.vectors, vector))
+        self._vectors = np.vstack((self._vectors, vector))
 
-    def get_similar_vectors(self, vector, top_k=5):
-        sims = cos_sim(vector, self.vectors)
+    def get_similar_vectors(self, vector, top_k=5, DEBUG=False):
+        sims = cos_sim(vector, self._vectors)
         sims = sims[0]
-        # print("[get_similar_vectors] Sims:", sims.shape)
+        if DEBUG:
+            print("[get_similar_vectors] Sims:", sims.shape)
+
         top_k_idx = np.argsort(sims)[::-1][:top_k]
-        # print("[get_similar_vectors] Top k idx:", top_k_idx)
-        # print("[get_similar_vectors] Top k sims:", sims[top_k_idx])
+        if DEBUG:
+            print("[get_similar_vectors] Top k idx:", top_k_idx)
+            print("[get_similar_vectors] Top k sims:", sims[top_k_idx])
+
         return top_k_idx, sims[top_k_idx]
 
     def memorize(self, text, id=None, metadata=None):
         id = id or str(uuid4())
         chunks = chop_and_chunk(text)
-        encoded_data = self.model.embed(texts=chunks, device=self.device)
-        self.vectors = np.vstack((self.vectors, encoded_data))
+        encoded_data = self._model.embed(texts=chunks, device=self._device)
+        self._vectors = np.vstack((self._vectors, encoded_data))
         for chunk in chunks:
-            self.texts.append(chunk)
-            idx = len(self.texts) - 1
-            self.metadata[idx] = metadata or {}
-            self.metadata[idx]['index'] = id or idx
+            self._texts.append(chunk)
+            idx = len(self._texts) - 1
+            self._metadata[idx] = metadata or {}
+            self._metadata[idx]['index'] = id or idx
         self.save()
-        return id, self.vectors
+        return id, self._vectors
 
     def remember(self, text=None, id=None, top_k=5):
         if id:
-            return self.metadata[id]
+            return self._metadata[id]
         if text:
 
-            sims = cos_sim(self.model.embed(texts=text, device=self.device) , self.vectors)
+            sims = cos_sim(self._model.embed(texts=text, device=self._device) , self._vectors)
             print("[remember] Sims:", sims.shape)
             sims = sims[0]
 
@@ -72,8 +76,32 @@ class VLite:
             top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]  
 
             # print("[remember] Top k sims:", sims[top_k_idx])
-            return [self.texts[idx] for idx in top_k_idx], sims[top_k_idx]
+            return [self._texts[idx] for idx in top_k_idx], sims[top_k_idx]
             
     def save(self):
-        with open(self.collection, 'wb') as f:
-            np.savez(f, texts=self.texts, metadata=self.metadata, vectors=self.vectors)
+        with open(self._collection, 'wb') as f:
+            np.savez(f, texts=self._texts, metadata=self._metadata, vectors=self._vectors)
+
+    @property
+    def collection(self):
+        return self._collection
+    
+    @property
+    def device(self):
+        return self._device
+    
+    @property
+    def model(self):
+        return self._model
+
+    @property
+    def texts(self):
+        return self._texts
+    
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def vectors(self):
+        return self._vectors
