@@ -35,12 +35,6 @@ I built it to support the millions of embeddings I generate , index, and sort wi
 
 It uses Apple's Metal Performance Shaders via Pytorch to accelerate vector loading and uses CPU threading to accelerate vector queries to reduce time spent copying vectors from the GPU(MPS) to the CPU.
 
-### easter egg
-
-here's the OpenAI GPT-4 paper tokenized with a simple BERT tokenizer (used primarily in vlite)
-
-![converted copy](https://github.com/sdan/vlite/assets/22898443/1b5b330d-0094-4da1-8d01-302255aa2010)
-
 
 taken from OpenAI's tiktoken repo, I added a visualize_tokens() function to visualize BPE tokens, i made visualize_tokens to handle the output of the tokenizer.encode() function since the currently supported embeddings are based on BERT and don't use the same tokenization as GPT-4.
 
