@@ -1,5 +1,5 @@
 from .utils import chop_and_chunk, cos_sim
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Union
 from .model import EmbeddingModel
 from uuid import uuid4
 import numpy as np
@@ -12,13 +12,18 @@ class Data:
     def __init__(self, data:dict=None):
         self._data = data or {}
     
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
+        """Get a value from the data object. Key must be a string."""
+        key = str(key)
         return self._data[key]
     
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any):
+        """Set a value in the data object. Key must be a string."""
+        key = str(key)
         self._data[key] = value
 
-    def __add__(self, data):
+    def __add__(self, data: Union[dict, 'Data']):
+        """Add a dict or Data object to the data object."""
         if isinstance(data, dict):
             self._data.update(data)
         elif isinstance(data, Data):
@@ -27,10 +32,12 @@ class Data:
             raise TypeError("Addition must be a dict or Data object.")
         return self
 
-    def append(self, value):
+    def append(self, value: Any):
         keys = list(self._data.keys())
-        if keys == list(range(len(keys))):
-            self._data[len(self._data)] = value
+        str_int_list = list(map(str, range(len(keys))))
+        if keys == str_int_list:
+            key = str(len(self._data))
+            self._data[key] = value
         else:
             raise ValueError("Keys are not sequential. Cannot append value. Set a key manually instead.")
 
@@ -112,7 +119,7 @@ class VLite:
         id (str): The id of the text to add to the database.
         metadata (Any): Any metadata to associate with the text.
         """
-        id = id or str(uuid4())
+        id = str(id) or str(uuid4())
         chunks = chop_and_chunk(text)
         encoded_data = self.model.embed(texts=chunks, device=self.device)
         self.vectors = np.vstack((self.vectors, encoded_data))
