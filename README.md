@@ -1,6 +1,8 @@
-# vlite
+# vlite (Automacene Remix)
 
-a blazing fast, lightweight, and simple vector database written in less than 200 lines of code.
+A blazing fast, lightweight, and simple vector database written in less than 200 lines of code. Originally written by [sdan](https://github.com/sdan), there were CRUD functionalities missing (UD). This is a fork to add the support and fix several issues.
+
+I'm not sure of the comparison methods originally used, but with the CRUD additions and the reworks associated with them, it's possible these comparitive metrics don't hold up. I do not plan on redoing any speed tests.
 
 ![442f7062-ab69-4621-96ca-4ee66df06ffc](https://github.com/sdan/vlite/assets/22898443/fc36481c-f1f6-4973-8461-6aef3a04486d)
 
