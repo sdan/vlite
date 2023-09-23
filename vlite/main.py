@@ -1,6 +1,6 @@
 from .utils import chop_and_chunk, cos_sim
 from .model import EmbeddingModel
-from typing import Any
+from typing import Any, List
 from uuid import uuid4
 import numpy as np
 import datetime
@@ -25,18 +25,18 @@ class VLite:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection = f"vlite_{current_datetime}.npz"
             
-        self._collection = collection
-        self._device = device
-        self._model = EmbeddingModel(model_name)
+        self.collection = collection
+        self.device = device
+        self.model = EmbeddingModel(model_name)
         try:
-            with np.load(self._collection, allow_pickle=True) as data:
-                self._data = data['texts'].tolist()
-                self._metadata = data['metadata'].tolist()
-                self._vectors = data['vectors']
+            with np.load(self.collection, allow_pickle=True) as data:
+                self.data = data['texts'].todict()
+                self.metadata = data['metadata'].tolist()
+                self.vectors = data['vectors']
         except FileNotFoundError:
-            self._data = []
-            self._metadata = {}
-            self._vectors = np.empty((0, self._model.dimension))
+            self.data = {}
+            self.metadata = {}
+            self.vector = np.empty((0, self.model.dimension))
     
     def add_vector(self, vector:Any):
         """
@@ -45,7 +45,7 @@ class VLite:
         Parameters:
         vector (Any): The vector to add to the database.
         """
-        self._vectors = np.vstack((self._vectors, vector))
+        self.vectors = np.vstack((self.vectors, vector))
 
     def get_similar_vectors(self, vector:Any, top_k:int=5, DEBUG:bool=False):
         """
@@ -56,7 +56,7 @@ class VLite:
         top_k (int): The number of results to return with the highest similarity.
         DEBUG (bool): Print debug information. Repo maintainer use only.
         """
-        sims = cos_sim(vector, self._vectors)
+        sims = cos_sim(vector, self.vectors)
         sims = sims[0]
         if DEBUG:
             print("[get_similar_vectors] Sims:", sims.shape)
@@ -79,11 +79,11 @@ class VLite:
         """
         id = id or str(uuid4())
         chunks = chop_and_chunk(text)
-        encoded_data = self._model.embed(texts=chunks, device=self._device)
-        self._vectors = np.vstack((self._vectors, encoded_data))
+        encoded_data = self.model.embed(texts=chunks, device=self.device)
+        self.vectors = np.vstack((self.vectors, encoded_data))
         ingest_text_chunks(chunks, self, metadata, id)
         self.save()
-        return id, self._vectors
+        return id, self.vectors
 
     def remember(self, text:str=None, id:Any=None, top_k:int=5, DEBUG:bool=False):
         """
@@ -96,10 +96,10 @@ class VLite:
         DEBUG (bool): Print debug information. Repo maintainer use only.
         """
         if id:
-            return self._metadata[id]
+            return self.metadata[id]
         if text:
 
-            sims = cos_sim(self._model.embed(texts=text, device=self._device) , self._vectors)
+            sims = cos_sim(self.model.embed(texts=text, device=self.device) , self.vectors)
             if DEBUG:
                 print("[remember] Sims:", sims.shape)
                 
@@ -117,48 +117,100 @@ class VLite:
             if DEBUG:
                 print("[remember] Top k sims:", sims[top_k_idx])
 
-            return [self._data[idx] for idx in top_k_idx], sims[top_k_idx]
+            return [self.data[idx] for idx in top_k_idx], sims[top_k_idx]
             
     def save(self):
         """Save the database to disk."""
-        with open(self._collection, 'wb') as f:
-            np.savez(f, texts=self._data, metadata=self._metadata, vectors=self._vectors)
+        with open(self.collection, 'wb') as f:
+            np.savez(f, texts=self.data, metadata=self.metadata, vectors=self.vectors)
 
     @property
     def collection(self):
         """The filename of the database."""
         return self._collection
     
+    @collection.setter
+    def collection(self, value):
+        """The filename of the database."""
+        self._collection = value
+    
     @property
     def device(self):
         """The device the model is running on."""
         return self._device
     
+    @device.setter
+    def device(self, value):
+        """The device the model is running on."""
+        self._device = value
+    
     @property
     def model(self):
         """The model used to generate vectors."""
         return self._model
+    
+    @model.setter
+    def model(self, value):
+        """The model used to generate vectors."""
+        self._model = value
 
     @property
     def texts(self):
         """The texts in the database. Deprecated. Use VLite.data instead."""
         warnings.warn("VLite.texts is deprecated. Use VLite.data instead.", DeprecationWarning)
         return self._data
+    
+    @texts.setter
+    def texts(self, value):
+        """The texts in the database. Deprecated. Use VLite.data instead."""
+        warnings.warn("VLite.texts is deprecated. Use VLite.data instead.", DeprecationWarning)
+        self._data = value
 
     @property
     def data(self):
         """Data stored in the database."""
         return self._data
     
+    @data.setter
+    def data(self, value):
+        """Data stored in the database."""
+        try:
+            if isinstance(value, dict):
+                if self._data is None:
+                    self._data = {}
+                self._data.update(value)
+            elif isinstance(value, List):
+                count = len(self._data)
+                for item in value:
+                    self._data[count] = item
+                    count += 1
+            elif isinstance(value, List[(Any, Any)]):
+                for item in value:
+                    self._data[item[0]] = item[1]
+            else:
+                raise TypeError("Data must be a dict, list, or list of tuples.")
+        except TypeError:
+            raise TypeError("Data must be a dict, list, or list of tuples.")
+        except Exception as e:
+            raise Exception(f"An unknown error occurred while adding data: {e}")
+    
     @property
     def metadata(self):
         """Metadata stored in the database."""
         return self._metadata
+    
+    @metadata.setter
+    def metadata(self, value):
+        self._metadata = value
 
     @property
     def vectors(self):
         """Vectors stored in the database."""
         return self._vectors
+    
+    @vectors.setter
+    def vectors(self, value):
+        self._vectors = value
     
 
 """
