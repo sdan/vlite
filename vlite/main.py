@@ -1,10 +1,38 @@
 from .utils import chop_and_chunk, cos_sim
+from typing import Any, List, Tuple
 from .model import EmbeddingModel
-from typing import Any, List
 from uuid import uuid4
 import numpy as np
 import datetime
 import warnings
+
+class Data:
+    """Generic data class for vector storage with property special property access."""
+
+    def __init__(self, data:dict=None):
+        self._data = data or {}
+    
+    def __getitem__(self, key):
+        return self._data[key]
+    
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __add__(self, data):
+        if isinstance(data, dict):
+            self._data.update(data)
+        elif isinstance(data, Data):
+            self._data.update(data._data)
+        else:
+            raise TypeError("Addition must be a dict or Data object.")
+        return self
+
+    def append(self, value):
+        keys = list(self._data.keys())
+        if keys == list(range(len(keys))):
+            self._data[len(self._data)] = value
+        else:
+            raise ValueError("Keys are not sequential. Cannot append value. Set a key manually instead.")
 
 class VLite:
     '''
@@ -13,8 +41,8 @@ class VLite:
     _collection = None
     _device = None
     _model = None
-    _data = {}
-    _metadata = {}
+    _data = Data()
+    _metadata = Data()
     _vectors = None
 
     def __init__(self, collection:str=None, device:str='mps', model_name:str=None):
@@ -179,26 +207,30 @@ class VLite:
         return self._data
     
     @data.setter
-    def data(self, value):
+    def data(self, key, value):
         """Data stored in the database."""
         if self._data is None:
-            self._data = {}
+            self._data = Data()
 
         try:
+            if key is not None:
+                self._data[key] = value
+                return
+
             if isinstance(value, dict):
-                self._data.update(value)
+                self._data += value
             elif isinstance(value, List):
                 count = len(self._data)
                 for item in value:
                     self._data[count] = item
                     count += 1
-            elif isinstance(value, List[(Any, Any)]):
+            elif isinstance(value, List) and all(isinstance(item, Tuple) for item in value):
                 for item in value:
                     self._data[item[0]] = item[1]
             else:
-                raise TypeError("Data must be a dict, list, or list of tuples.")
+                raise TypeError("'data' must be a dict, list, or list of tuples.")
         except TypeError:
-            raise TypeError("Data must be a dict, list, or list of tuples.")
+            raise TypeError("'data' must be a dict, list, or list of tuples.")
         except Exception as e:
             raise Exception(f"An unknown error occurred while adding data: {e}")
     
@@ -209,15 +241,17 @@ class VLite:
     
     @metadata.setter
     def metadata(self, value):
+        """Metadata stored in the database."""
         self._metadata = value
 
     @property
     def vectors(self):
-        """Vectors stored in the database."""
+        """Embedding vectors stored in the database."""
         return self._vectors
     
     @vectors.setter
     def vectors(self, value):
+        """Embedding vectors stored in the database."""
         self._vectors = value
     
 
