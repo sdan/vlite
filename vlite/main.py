@@ -65,12 +65,12 @@ class VLite:
         self.model = EmbeddingModel(model_name)
         try:
             with np.load(self.collection, allow_pickle=True) as data:
-                self.data = data['texts'].todict()
+                self.data = data['texts'].tolist()
                 self.metadata = data['metadata'].tolist()
                 self.vectors = data['vectors']
         except FileNotFoundError:
-            self.data = {}
-            self.metadata = {}
+            self.data = Data()
+            self.metadata = Data()
             self.vectors = np.empty((0, self.model.dimension))
     
     def add_vector(self, vector:Any):
@@ -207,8 +207,18 @@ class VLite:
         return self._data
     
     @data.setter
-    def data(self, key, value):
+    def data(self, *args):
         """Data stored in the database."""
+        if len(args) == 1:
+            key = None
+            value = args[0]
+        elif len(args) == 2:
+            key = args[0]
+            value = args[1]
+        else:
+            raise TypeError("'data' must be a dict, list, or list of tuples.")
+        
+
         if self._data is None:
             self._data = Data()
 
@@ -217,19 +227,20 @@ class VLite:
                 self._data[key] = value
                 return
 
+            if isinstance(value, Data):
+                self._data = value
             if isinstance(value, dict):
-                self._data += value
+                self._data = Data(data=value)
             elif isinstance(value, List):
-                count = len(self._data)
+                self._data = Data()
                 for item in value:
-                    self._data[count] = item
-                    count += 1
+                    self._data.append(item)
             elif isinstance(value, List) and all(isinstance(item, Tuple) for item in value):
                 for item in value:
                     self._data[item[0]] = item[1]
             else:
-                raise TypeError("'data' must be a dict, list, or list of tuples.")
-        except TypeError:
+                print(type(value), type(key))
+        except TypeError as e:
             raise TypeError("'data' must be a dict, list, or list of tuples.")
         except Exception as e:
             raise Exception(f"An unknown error occurred while adding data: {e}")
