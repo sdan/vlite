@@ -10,6 +10,13 @@ class VLite:
     '''
     vlite is a simple vector database that stores vectors in a numpy array.
     '''
+    _collection = None
+    _device = None
+    _model = None
+    _data = {}
+    _metadata = {}
+    _vectors = None
+
     def __init__(self, collection:str=None, device:str='mps', model_name:str=None):
         """
         Initialize a new VLite database.
@@ -36,7 +43,7 @@ class VLite:
         except FileNotFoundError:
             self.data = {}
             self.metadata = {}
-            self.vector = np.empty((0, self.model.dimension))
+            self.vectors = np.empty((0, self.model.dimension))
     
     def add_vector(self, vector:Any):
         """
@@ -176,7 +183,7 @@ class VLite:
         """Data stored in the database."""
         if self._data is None:
             self._data = {}
-            
+
         try:
             if isinstance(value, dict):
                 self._data.update(value)
