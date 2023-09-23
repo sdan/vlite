@@ -174,10 +174,11 @@ class VLite:
     @data.setter
     def data(self, value):
         """Data stored in the database."""
+        if self._data is None:
+            self._data = {}
+            
         try:
             if isinstance(value, dict):
-                if self._data is None:
-                    self._data = {}
                 self._data.update(value)
             elif isinstance(value, List):
                 count = len(self._data)
