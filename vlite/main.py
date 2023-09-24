@@ -32,6 +32,10 @@ class Data:
             raise TypeError("Addition must be a dict or Data object.")
         return self
 
+    def __len__(self):
+        """Return the length of the data object."""
+        return len(self._data)
+    
     def append(self, value: Any):
         keys = list(self._data.keys())
         str_int_list = list(map(str, range(len(keys))))
@@ -40,6 +44,15 @@ class Data:
             self._data[key] = value
         else:
             raise ValueError("Keys are not sequential. Cannot append value. Set a key manually instead.")
+    
+    def keys(self):
+        """Return the keys of the data object."""
+        return self._data.keys()
+
+    def values(self):
+        """Return the values of the data object."""
+        return self._data.values()
+    
 
 class VLite:
     '''
@@ -119,7 +132,10 @@ class VLite:
         id (str): The id of the text to add to the database.
         metadata (Any): Any metadata to associate with the text.
         """
-        id = str(id) or str(uuid4())
+        if id == None:
+            id = uuid4()
+        id = str(id)
+        
         chunks = chop_and_chunk(text)
         encoded_data = self.model.embed(texts=chunks, device=self.device)
         self.vectors = np.vstack((self.vectors, encoded_data))
@@ -139,8 +155,8 @@ class VLite:
         """
         if id:
             return self.data[id]
+        
         if text:
-
             sims = cos_sim(self.model.embed(texts=text, device=self.device) , self.vectors)
             if DEBUG:
                 print("[remember] Sims:", sims.shape)
@@ -246,6 +262,7 @@ class VLite:
                 for item in value:
                     self._data[item[0]] = item[1]
             else:
+                #TODO: Figure out why this is happening
                 print(type(value), type(key))
         except TypeError as e:
             raise TypeError("'data' must be a dict, list, or list of tuples.")
@@ -281,8 +298,9 @@ class VLite:
 
 def ingest_text_chunks(chunks, db: VLite, metadata = None, key = None):
     """Ingest text chunks into the database"""
-    text_key = key or len(db.texts) - 1
+    text_key = key or len(db.data) - 1
+    db.data[text_key] = []
+    db.metadata[text_key] = metadata or {}
+
     for chunk in chunks:
-        db.data.append(chunk)
-        db.metadata[text_key] = metadata or {}
-        db.metadata[text_key]['index'] = text_key
+        db.data[text_key].append(chunk)
