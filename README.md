@@ -23,8 +23,22 @@ db.remember("adele")
 
 ## installation
 
+To install this fork (installs as *vlite*):
+
 ```bash
-pip install vlite
+pip install git+https://github.com/Automacene/vlite
+```
+
+To install a specific branch:
+
+```bash
+pip install git+https://github.com/Automacene/vlite@codie/name_of_branch
+```
+
+## uninstall
+
+```bash
+pip uninstall
 ```
 
 ## about
