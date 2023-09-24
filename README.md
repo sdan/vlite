@@ -38,7 +38,7 @@ pip install git+https://github.com/Automacene/vlite@codie/name_of_branch
 ## uninstall
 
 ```bash
-pip uninstall
+pip uninstall vlite
 ```
 
 ## about
