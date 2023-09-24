@@ -64,6 +64,7 @@ class VLite:
     _data = Data()
     _metadata = Data()
     _vectors = None
+    _vector_key_store = []
 
     def __init__(self, collection:str=None, device:str='mps', model_name:str=None):
         """
@@ -139,9 +140,11 @@ class VLite:
         chunks = chop_and_chunk(text)
         encoded_data = self.model.embed(texts=chunks, device=self.device)
         self.vectors = np.vstack((self.vectors, encoded_data))
+        insert = [id] * len(chunks)
+        self._vector_key_store.extend(insert)
         ingest_text_chunks(chunks, self, metadata, id)
         self.save()
-        return id, self.vectors
+        return id, encoded_data[0]
 
     def remember(self, text:str=None, id:Any=None, top_k:int=5, DEBUG:bool=False):
         """
@@ -171,11 +174,12 @@ class VLite:
 
             # Use np.argsort to sort just those top k indices
             top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]  
+            top_k_keys = [self._vector_key_store[idx] for idx in top_k_idx]
 
             if DEBUG:
                 print("[remember] Top k sims:", sims[top_k_idx])
-
-            return [self.data[idx] for idx in top_k_idx], sims[top_k_idx]
+            
+            return [self.data[key] for key in top_k_keys], sims[top_k_idx]
             
     def save(self):
         """Save the database to disk."""
