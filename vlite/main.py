@@ -157,7 +157,7 @@ class VLite:
         DEBUG (bool): Print debug information. Repo maintainer use only.
         """
         if id:
-            return self.data[id]
+            return self.data[id], self.metadata[id], None
         
         if text:
             sims = cos_sim(self.model.embed(texts=text, device=self.device) , self.vectors)
@@ -179,7 +179,10 @@ class VLite:
             if DEBUG:
                 print("[remember] Top k sims:", sims[top_k_idx])
             
-            return [self.data[key] for key in top_k_keys], sims[top_k_idx]
+            data = [self.data[key] for key in top_k_keys]
+            metadata = [self.metadata[key] for key in top_k_keys]
+            similiarities = sims[top_k_idx]
+            return data, metadata, similiarities
             
     def save(self):
         """Save the database to disk."""
@@ -302,9 +305,17 @@ class VLite:
 
 def ingest_text_chunks(chunks, db: VLite, metadata = None, key = None):
     """Ingest text chunks into the database"""
+    if key is None:
+        key = len(db.data) - 1
+    key = str(key)
+    
     text_key = key or len(db.data) - 1
     db.data[text_key] = []
-    db.metadata[text_key] = metadata or {}
+
+    if metadata is None:
+        metadata = {}
+    metadata["id"] = text_key
+    db.metadata[text_key] = metadata
 
     for chunk in chunks:
         db.data[text_key].append(chunk)
