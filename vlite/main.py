@@ -10,7 +10,10 @@ class Data:
     """Generic data class for vector storage with property special property access."""
 
     def __init__(self, data:dict=None):
-        self._data = data or {}
+        """Initialize a new Data object."""
+        if data is None:
+            data = {}
+        self._data = data
     
     def __getitem__(self, key: str):
         """Get a value from the data object. Key must be a string."""
@@ -52,7 +55,6 @@ class Data:
     def values(self):
         """Return the values of the data object."""
         return self._data.values()
-    
 
 class VLite:
     '''
@@ -65,8 +67,9 @@ class VLite:
     _metadata = Data()
     _vectors = None
     _vector_key_store = []
+    _info = None
 
-    def __init__(self, collection:str=None, device:str='mps', model_name:str=None):
+    def __init__(self, collection:str=None, device:str='mps', model_name:str=None, info:dict=None):
         """
         Initialize a new VLite database.
 
@@ -89,10 +92,12 @@ class VLite:
                 self.data = data['texts'].tolist()
                 self.metadata = data['metadata'].tolist()
                 self.vectors = data['vectors']
+                self.info = data['info']
         except FileNotFoundError:
             self.data = Data()
             self.metadata = Data()
             self.vectors = np.empty((0, self.model.dimension))
+            self.info = info
     
     def add_vector(self, vector:Any):
         """
@@ -124,7 +129,7 @@ class VLite:
 
         return top_k_idx, sims[top_k_idx]
 
-    def memorize(self, text: str, id: Any=None, metadata: Any=None):
+    def memorize(self, text: str, id: Any=None, metadata: Any=None) -> List[str, List[float]]:
         """
         Add a text to the database.
 
@@ -187,7 +192,13 @@ class VLite:
     def save(self):
         """Save the database to disk."""
         with open(self.collection, 'wb') as f:
-            np.savez(f, texts=self.data, metadata=self.metadata, vectors=self.vectors)
+            np.savez(
+                        f, 
+                        texts=self.data, 
+                        metadata=self.metadata, 
+                        vectors=self.vectors,
+                        info=self.info
+                    )
 
     @property
     def collection(self):
@@ -296,6 +307,17 @@ class VLite:
         """Embedding vectors stored in the database."""
         self._vectors = value
     
+    @property
+    def info(self):
+        """Information about the database."""
+        return self._info
+    
+    @info.setter
+    def info(self, value:dict = None):
+        """Information about the database."""
+        if value is None:
+            value = {}
+        self._info = value
 
 """
 ---------------------
