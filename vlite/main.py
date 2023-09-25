@@ -138,9 +138,8 @@ class VLite:
         id (str): The id of the text to add to the database.
         metadata (Any): Any metadata to associate with the text.
         """
-        if id == None:
-            id = uuid4()
-        id = str(id)
+        if id != None:
+            id = str(id)
         
         chunks = chop_and_chunk(text)
         encoded_data = self.model.embed(texts=chunks, device=self.device)
