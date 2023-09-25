@@ -92,7 +92,7 @@ class VLite:
                 self.data = data['texts'].tolist()
                 self.metadata = data['metadata'].tolist()
                 self.vectors = data['vectors']
-                self.info = data['info']
+                self.info = data["info"].tolist()
         except FileNotFoundError:
             self.data = Data()
             self.metadata = Data()
@@ -129,7 +129,7 @@ class VLite:
 
         return top_k_idx, sims[top_k_idx]
 
-    def memorize(self, text: str, id: Any=None, metadata: Any=None) -> List[str, List[float]]:
+    def memorize(self, text: str, id: Any=None, metadata: Any=None) -> Tuple[str, List[float]]:
         """
         Add a text to the database.
 
