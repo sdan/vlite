@@ -129,7 +129,7 @@ class VLite:
 
         return top_k_idx, sims[top_k_idx]
 
-    def memorize(self, text: str, id: Any=None, metadata: Any=None) -> Tuple[str, List[float]]:
+    def memorize(self, text: str, id: Any=None, metadata: Any=None, chunk_size=256) -> Tuple[str, List[float]]:
         """
         Add a text to the database.
 
@@ -141,7 +141,11 @@ class VLite:
         if id != None:
             id = str(id)
         
-        chunks = chop_and_chunk(text)
+        #TODO: Remove chunking and chunk_size parameters. Chunking should be handled by the user.
+        chunks = [text]
+        if chunk_size > 0:
+            chunks = chop_and_chunk(text, max_seq_length=chunk_size)
+
         encoded_data = self.model.embed(texts=chunks, device=self.device)
         self.vectors = np.vstack((self.vectors, encoded_data))
         insert = [id] * len(chunks)
@@ -166,6 +170,7 @@ class VLite:
         if text:
             sims = cos_sim(self.model.embed(texts=text, device=self.device) , self.vectors)
             if DEBUG:
+                print("[remember] Vectors:", self.vectors.shape)
                 print("[remember] Sims:", sims.shape)
                 
             sims = sims[0]
@@ -177,7 +182,9 @@ class VLite:
             top_k_idx = np.argpartition(sims, -top_k)[-top_k:]  
 
             # Use np.argsort to sort just those top k indices
-            top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]  
+            print(self._vector_key_store)
+            top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]
+            print(top_k_idx)
             top_k_keys = [self._vector_key_store[idx] for idx in top_k_idx]
 
             if DEBUG:
