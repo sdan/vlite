@@ -1,7 +1,6 @@
 from .utils import chop_and_chunk, cos_sim
 from typing import Any, List, Tuple, Union
 from .model import EmbeddingModel
-from uuid import uuid4
 import numpy as np
 import datetime
 import warnings
@@ -93,6 +92,7 @@ class VLite:
                 self.metadata = data['metadata'].tolist()
                 self.vectors = data['vectors']
                 self.info = data["info"].tolist()
+                self._vector_key_store = list(self.data.keys())
         except FileNotFoundError:
             self.data = Data()
             self.metadata = Data()
