@@ -15,7 +15,10 @@ class EmbeddingModel:
     '''
     EmbeddingModel runs a transformer model and returns the embedding for a given text.
     '''
-    def __init__(self, model_name='sentence-transformers/all-MiniLM-L6-v2'):
+    def __init__(self, model_name=None):
+        if model_name is None:
+            model_name = 'sentence-transformers/all-MiniLM-L6-v2'
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True) # use_fast=True
 
         self.model = AutoModel.from_pretrained(model_name)

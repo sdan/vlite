@@ -6,31 +6,6 @@ from typing import List
 from transformers import AutoTokenizer, AutoModel
 import regex as re
 
-# def chop_and_chunk(text, max_seq_length=256):
-#     if isinstance(text, str):
-#         if len(text) < max_seq_length*4:
-#             return [text]
-#         text = [text]
-#     segmenter = pysbd.Segmenter(language="en", clean=False)
-#     chunks = []
-#     for i, sentence in enumerate(text):
-#         if len(sentence) < max_seq_length*4:
-#             chunks.append(sentence)
-#         else:
-#             segs = segmenter.segment(sentence)
-#             buffer = "" # buffer for the current chunk
-#             for seg in segs:
-#                 if len(buffer) + len(seg) > max_seq_length*4:
-#                     chunks.append(buffer)
-#                     buffer = ""
-#                 buffer += seg
-#                 if len(buffer) > max_seq_length*4:
-#                     chunks.append(buffer)
-#                     buffer = ""
-#                 else:
-#                     buffer += ""
-#     return chunks
-
 def chop_and_chunk(text, max_seq_length=256):
     """
     Chop and chunk a text into smaller pieces of text. 
