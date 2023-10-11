@@ -140,6 +140,8 @@ class VLite:
         """
         if id != None:
             id = str(id)
+        else:
+            id = str(len(self.vectors))
         
         #TODO: Remove chunking and chunk_size parameters. Chunking should be handled by the user.
         chunks = [text]
@@ -148,8 +150,11 @@ class VLite:
 
         encoded_data = self.model.embed(texts=chunks, device=self.device)
         self.vectors = np.vstack((self.vectors, encoded_data))
-        insert = [id] * len(chunks)
-        self._vector_key_store.extend(insert)
+        #TODO: Remove insert method when chunking is removed.
+        insert = [id] * len(chunks) #Using the same vector_key for all chunks so we can retrieve the full text later
+        print("Insert:", insert)
+        #TODO: Append to vector_key_store instead of extending it when chunking is removed.
+        self._vector_key_store.extend(insert) #Inserting the same vector_key for all chunks so indexers match up
         ingest_text_chunks(chunks, self, metadata, id)
         self.save()
         return id, encoded_data[0]
@@ -163,11 +168,16 @@ class VLite:
         id (str): The id of the text to search for.
         top_k (int): The number of results to return with the highest similarity.
         DEBUG (bool): Print debug information. Repo maintainer use only.
+
+        Returns:
+        data (List[str]): The text(s) retrieved from the database.
+        metadata (List[Any]): The metadata associated with the text(s).
+        similiarities (List[float]): The similarity score(s) of the text(s) to the query.
         """
-        if id:
+        if id is not None:
             return self.data[id], self.metadata[id], None
         
-        if text:
+        if text is not None:
             sims = cos_sim(self.model.embed(texts=text, device=self.device) , self.vectors)
             if DEBUG:
                 print("[remember] Vectors:", self.vectors.shape)
