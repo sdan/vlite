@@ -15,5 +15,5 @@ if __name__ == '__main__':
 
     data, vector, score = db.remember("What do tadpoles eat?")
     print("Data: ", data)
-    print("Vector: ", vector)
+    print("Metadata: ", vector)
     print("Score: ", score)
