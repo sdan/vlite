@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
-from main import VLite
+from vlite import VLite
 import os
-from utils import load_file
+from vlite.utils import load_file
 import cProfile
 from pstats import Stats
 import matplotlib.pyplot as plt
@@ -57,9 +57,11 @@ class TestVLite(unittest.TestCase):
         stats.strip_dirs().sort_stats("time").print_stats()
 
     def test_remember(self):
+        self.vlite.memorize(self.corpus)
         with cProfile.Profile() as pr:
             for query in self.queries:
-                _, top_sims = self.vlite.remember(query)
+                data, metadata, top_sims = self.vlite.remember(query)
+                print(data)
         stats = Stats(pr)
         stats.strip_dirs().sort_stats("time").print_stats()
 
