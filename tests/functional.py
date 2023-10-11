@@ -13,7 +13,7 @@ if __name__ == '__main__':
     db.memorize("The longest river in the world is the Nile.")
     db.memorize("American football is the most popular sport in the United States.")
 
-    data, vector, score = db.remember("What do tadpoles eat?")
+    data, metadata, score = db.remember("What do tadpoles eat?")
     print("Data: ", data)
-    print("Metadata: ", vector)
+    print("Metadata: ", metadata)
     print("Score: ", score)
