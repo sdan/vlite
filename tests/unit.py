@@ -29,14 +29,18 @@ class TestVLite(unittest.TestCase):
             "What are the novel contributions of the GPT-4 model?"
         ]
         self.corpus = load_file('test-data/gpt-4.pdf')
+        # remove test store if present
+        if os.path.exists('unittest.npz'):
+            print("[+] Removing unittest.npz")
+            os.remove('unittest.npz')
 
-        self.vlite = VLite(DEBUG=True)
+        self.vlite = VLite(collection='unittest.npz', DEBUG=True)
 
     def tearDown(self):
         # remove the file
-        if os.path.exists('vlite.pkl'):
-            print("[+] Removing vlite.pkl")
-            os.remove('vlite.pkl')
+        if os.path.exists('unittest.npz'):
+            print("[+] Removing unittest.npz")
+            os.remove('unittest.npz')
 
     def test_add_vector(self):
         with cProfile.Profile() as pr:
@@ -77,7 +81,7 @@ class TestVLite(unittest.TestCase):
         self.vlite.memorize(self.corpus)
         with cProfile.Profile() as pr:
             for q, query in enumerate(self.queries):
-                data, metadata, top_sims = self.vlite.remember(query)
+                data, metadata, top_sims = self.vlite.remember(query, DEBUG=True)
                 if q == 0:
                     print(f'\n{query}\n{top_sims}\n{metadata[0]}')
                     print(f'\n{query}\n{data[0][0]}')

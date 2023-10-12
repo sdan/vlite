@@ -80,7 +80,7 @@ class VLite:
         model_name (str): The name of the model to use. Defaults to 'sentence-transformers/all-MiniLM-L6-v2'.
         """
         self.DEBUG = DEBUG
-		# Filename must be unique between runs. Saving to the same file will append vectors to previous run's vectors
+	# Filename must be unique between runs. Saving to the same file will append vectors to previous run's vectors
         if collection is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection = f"vlite_{current_datetime}.npz"
@@ -100,6 +100,7 @@ class VLite:
             self.metadata = Data()
             self.vectors = np.empty((0, self.model.dimension))
             self.info = info
+            self._vector_key_store = []
     
     def add_vector(self, vector:Any):
         """
@@ -131,7 +132,7 @@ class VLite:
 
         return top_k_idx, sims[top_k_idx]
 
-    def memorize(self, text: str, id: Any=uuid.uuid4(), metadata: Any=None, chunk_size=256) -> Tuple[str, List[float]]:
+    def memorize(self, text: str, id: Any=None, metadata: Any=None, chunk_size=256) -> Tuple[str, List[float]]:
         """
         Add a text to the database.
 
@@ -143,7 +144,8 @@ class VLite:
         if id != None:
             id = str(id)
         else:
-            id = str(len(self.vectors))
+            id = uuid.uuid4()
+        print(f'memorize id {id}')
         
         #TODO: Remove chunking and chunk_size parameters. Chunking should be handled by the user.
         chunks = [text]
@@ -193,7 +195,11 @@ class VLite:
             top_k_idx = np.argpartition(sims, -top_k)[-top_k:]  
 
             # Use np.argsort to sort just those top k indices
+            if DEBUG:
+                print(f'remember top_k_idx pre sort {top_k_idx}')
             top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]
+            if DEBUG:
+                print(f'remember top_k_idx post sort {top_k_idx}')
             top_k_keys = [self._vector_key_store[idx] for idx in top_k_idx]
 
             if DEBUG:
