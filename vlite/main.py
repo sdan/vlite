@@ -4,6 +4,8 @@ from .model import EmbeddingModel
 import numpy as np
 import datetime
 import warnings
+import uuid
+import traceback
 
 class Data:
     """Generic data class for vector storage with property special property access."""
@@ -68,7 +70,7 @@ class VLite:
     _vector_key_store = []
     _info = None
 
-    def __init__(self, collection:str=None, device:str='mps', model_name:str=None, info:dict=None):
+    def __init__(self, collection:str=None, device:str='mps', model_name:str=None, info:dict=None, DEBUG:bool=False):
         """
         Initialize a new VLite database.
 
@@ -77,7 +79,7 @@ class VLite:
         device (str): The device to run the model on. Defaults to 'mps'.
         model_name (str): The name of the model to use. Defaults to 'sentence-transformers/all-MiniLM-L6-v2'.
         """
-
+        self.DEBUG = DEBUG
 		# Filename must be unique between runs. Saving to the same file will append vectors to previous run's vectors
         if collection is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -129,7 +131,7 @@ class VLite:
 
         return top_k_idx, sims[top_k_idx]
 
-    def memorize(self, text: str, id: Any=None, metadata: Any=None, chunk_size=256) -> Tuple[str, List[float]]:
+    def memorize(self, text: str, id: Any=uuid.uuid4(), metadata: Any=None, chunk_size=256) -> Tuple[str, List[float]]:
         """
         Add a text to the database.
 
@@ -152,7 +154,6 @@ class VLite:
         self.vectors = np.vstack((self.vectors, encoded_data))
         #TODO: Remove insert method when chunking is removed.
         insert = [id] * len(chunks) #Using the same vector_key for all chunks so we can retrieve the full text later
-        print("Insert:", insert)
         #TODO: Append to vector_key_store instead of extending it when chunking is removed.
         self._vector_key_store.extend(insert) #Inserting the same vector_key for all chunks so indexers match up
         ingest_text_chunks(chunks, self, metadata, id)
@@ -192,9 +193,7 @@ class VLite:
             top_k_idx = np.argpartition(sims, -top_k)[-top_k:]  
 
             # Use np.argsort to sort just those top k indices
-            print(self._vector_key_store)
             top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]
-            print(top_k_idx)
             top_k_keys = [self._vector_key_store[idx] for idx in top_k_idx]
 
             if DEBUG:
@@ -286,7 +285,7 @@ class VLite:
 
             if isinstance(value, Data):
                 self._data = value
-            if isinstance(value, dict):
+            elif isinstance(value, dict):
                 self._data = Data(data=value)
             elif isinstance(value, List):
                 self._data = Data()
@@ -297,8 +296,10 @@ class VLite:
                     self._data[item[0]] = item[1]
             else:
                 #TODO: Figure out why this is happening
-                print(type(value), type(key))
+                print('huh?', type(value), type(key))
+                raise TypeError
         except TypeError as e:
+            traceback.print_exc()
             raise TypeError("'data' must be a dict, list, or list of tuples.")
         except Exception as e:
             raise Exception(f"An unknown error occurred while adding data: {e}")

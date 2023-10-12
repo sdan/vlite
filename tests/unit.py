@@ -30,7 +30,7 @@ class TestVLite(unittest.TestCase):
         ]
         self.corpus = load_file('test-data/gpt-4.pdf')
 
-        self.vlite = VLite()
+        self.vlite = VLite(DEBUG=True)
 
     def tearDown(self):
         # remove the file
@@ -40,30 +40,49 @@ class TestVLite(unittest.TestCase):
 
     def test_add_vector(self):
         with cProfile.Profile() as pr:
-            self.vlite.add_vector(np.random.rand(384, 384))
-        stats = Stats(pr)
-        stats.strip_dirs().sort_stats("time").print_stats()
-
+            self.vlite.add_vector(np.random.rand(5, 384))
+            self.assertEqual(self.vlite.vectors.shape[0], 5) # was initially empty
+            self.vlite.add_vector(np.random.rand(4, 384))
+            self.assertEqual(self.vlite.vectors.shape[0], 9) # add 4 more, s/b 9
+        #stats = Stats(pr)
+        #stats.strip_dirs().sort_stats("time").print_stats()
+        
     def test_get_similar_vectors(self):
         with cProfile.Profile() as pr:
+            self.vlite.add_vector(np.random.rand(7, 384))
+            self.vlite.add_vector(np.random.rand(4, 384))
             indices, sims = self.vlite.get_similar_vectors(np.random.rand(1, 384))
-        stats = Stats(pr)
-        stats.strip_dirs().sort_stats("time").print_stats()
+            self.assertEqual(len(indices), 5)
+            for index in indices:
+                self.assertEqual(type(index), np.int64)
+                self.assertTrue(index >= 0)
+                self.assertTrue(index <= 11)
+            self.assertEqual(len(sims), 5)
+            for sim in sims:
+                self.assertEqual(type(sim), np.float64)
+                self.assertTrue(sim >= -1.0)
+                self.assertTrue(sim <= 1.0)
+            
+        #stats = Stats(pr)
+        #stats.strip_dirs().sort_stats("time").print_stats()
 
     def test_memorize(self):
         with cProfile.Profile() as pr:
             self.vlite.memorize(self.corpus)
-        stats = Stats(pr)
-        stats.strip_dirs().sort_stats("time").print_stats()
+        self.assertTrue(len(self.vlite.data) > 0)
+        #stats = Stats(pr)
+        #stats.strip_dirs().sort_stats("time").print_stats()
 
     def test_remember(self):
         self.vlite.memorize(self.corpus)
         with cProfile.Profile() as pr:
-            for query in self.queries:
+            for q, query in enumerate(self.queries):
                 data, metadata, top_sims = self.vlite.remember(query)
-                print(data)
-        stats = Stats(pr)
-        stats.strip_dirs().sort_stats("time").print_stats()
+                if q == 0:
+                    print(f'\n{query}\n{top_sims}\n{metadata[0]}')
+                    print(f'\n{query}\n{data[0][0]}')
+        #stats = Stats(pr)
+        #stats.strip_dirs().sort_stats("time").print_stats()
 
 if __name__ == '__main__':
     unittest.main()
