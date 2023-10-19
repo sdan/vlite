@@ -2,10 +2,6 @@
 
 This document outlines the roadmap for the Vlite VDB (Vector Database), a Python project. The Vlite VDB is known for its lightweight and high-performance characteristics but currently lacks full CRUD (Create, Read, Update, Delete) support and has some areas that need improvement. This roadmap defines the features and changes planned to transform the VDB into a more complete and user-friendly module while adhering to its original vision.
 
-## Introduction
-
-The Vlite VDB is a versatile Python library designed to provide efficient vector-based data storage and retrieval capabilities. This roadmap outlines the upcoming enhancements and features aimed at further strengthening its capabilities and usability.
-
 ## The Next Mile
  - ~~Fix "Remember by ID" functionality.~~ **(Done)**
     - ~~"Remember by ID" was implemented but was not functioning appropriately.~~
