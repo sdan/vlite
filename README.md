@@ -1,4 +1,4 @@
-# vlite (Automacene Remix)
+# VLite (Automacene Remix)
 
 A blazing fast, lightweight, and simple vector database written in less than 200 lines of code. Originally written by [sdan](https://github.com/sdan), there were CRUD functionalities missing (UD). This is a fork to add the support and fix several issues.
 
@@ -6,7 +6,7 @@ I'm not sure of the comparison methods originally used, but with the CRUD additi
 
 ![442f7062-ab69-4621-96ca-4ee66df06ffc](https://github.com/sdan/vlite/assets/22898443/fc36481c-f1f6-4973-8461-6aef3a04486d)
 
-## usage
+## Usage
 
 ```python
 from vlite import VLite
@@ -21,7 +21,7 @@ db.remember("adele")
 
 ```
 
-## installation
+## Installation
 
 To install this fork (installs as *vlite*):
 
@@ -35,13 +35,13 @@ To install a specific branch:
 pip install git+https://github.com/Automacene/vlite@codie/name_of_branch
 ```
 
-## uninstall
+## Uninstall
 
 ```bash
 pip uninstall vlite
 ```
 
-## about
+## About
 
 VLite is a vector database built for agents, ChatGPT Plugins, and other AI apps that need a fast and simple database to store vectors. 
 
@@ -52,4 +52,6 @@ It uses Apple's Metal Performance Shaders via Pytorch to accelerate vector loadi
 
 taken from OpenAI's tiktoken repo, I added a visualize_tokens() function to visualize BPE tokens, i made visualize_tokens to handle the output of the tokenizer.encode() function since the currently supported embeddings are based on BERT and don't use the same tokenization as GPT-4.
 
+# Future
 
+You can check out the [roadmap](./ROADMAP.md) to see what will be changing in the near future.
