@@ -35,7 +35,7 @@ The Vlite VDB is a versatile Python library designed to provide efficient vector
 ## The Next Ten Miles
 - Graphs
     - Graphs offer an amazing opportunity to pull relevant information that may not be highly semantically similar.
-    - For example, in wikipedia, under the top quantum computing, you may just want to know about programming a quantum computer. But, the wiki article has many details about quantum physics. Maybe initially you don't care, but if you require explanations of particular effects, it would be nice if VDBs could link related but semantically different topics.
+    - For example, in wikipedia, under the topic quantum computing, you may just want to know about programming a quantum computer. But, the wiki article has many details about quantum physics. Maybe initially you don't care, but if you require explanations of particular effects, it would be nice if VDBs could link related but semantically different topics.
     - Additonally, in the context of IT assistance, it is common for questions to frequently appear when a new user is onboarded or a change in the product or service happens. These conversations usually lead to a similar result even though the conversations may vary. In the context, making a graph that branches conversations can lead to faster resolution by following the shortest paths. Either AI or Augmented Human in the Loop services can use entries as reference.
 - Multimodal Similarities
     - While many of the new LLMs claim to be "Multimodal", in reality this is not likely the case. They are likely to be several models working together in clever ways to provide a singular AI experience. Which is fine.
