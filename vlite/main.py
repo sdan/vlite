@@ -40,6 +40,10 @@ class Data:
         """Return the length of the data object."""
         return len(self._data)
     
+    def __delattr__(self, __name: str) -> None:
+        """Delete an attribute from the data object."""
+        del self._data[__name]
+    
     def append(self, value: Any):
         keys = list(self._data.keys())
         str_int_list = list(map(str, range(len(keys))))
