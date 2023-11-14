@@ -24,8 +24,11 @@ if __name__ == '__main__':
     db.forget("Three")
     db.forget("Four")
     db.forget("Five")
-    print(f"{db.entry_count} entries remaining in database.\n")
 
+    print(f"\n{db.entry_count} entries remaining in database.")
     print("Keys:")
     for vector in db._vector_key_store:
         print(vector)
+    print("Vector Count: ", len(db.vectors))
+    print("Data Count: ", len(db.data))
+    print("Metadata Count: ", len(db.metadata))
