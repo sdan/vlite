@@ -84,7 +84,7 @@ class VLite:
         model_name (str): The name of the model to use. Defaults to 'sentence-transformers/all-MiniLM-L6-v2'.
         """
         self.DEBUG = DEBUG
-	# Filename must be unique between runs. Saving to the same file will append vectors to previous run's vectors
+	    # Filename must be unique between runs. Saving to the same file will append vectors to previous run's vectors
         if collection is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection = f"vlite_{current_datetime}.npz"
@@ -151,18 +151,11 @@ class VLite:
             id = uuid.uuid4()
         print(f'memorize id {id}')
         
-        #TODO: Remove chunking and chunk_size parameters. Chunking should be handled by the user.
-        chunks = [text]
-        if chunk_size > 0:
-            chunks = chop_and_chunk(text, max_seq_length=chunk_size)
-
-        encoded_data = self.model.embed(texts=chunks, device=self.device)
+        encoded_data = self.model.embed(texts=text, device=self.device)
         self.vectors = np.vstack((self.vectors, encoded_data))
-        #TODO: Remove insert method when chunking is removed.
-        insert = [id] * len(chunks) #Using the same vector_key for all chunks so we can retrieve the full text later
         #TODO: Append to vector_key_store instead of extending it when chunking is removed.
-        self._vector_key_store.extend(insert) #Inserting the same vector_key for all chunks so indexers match up
-        ingest_text_chunks(chunks, self, metadata, id)
+        self._vector_key_store.append(id) #Inserting the same vector_key for all chunks so indexers match up
+        add_data(text, self, metadata, id)
         self.save()
         return id, encoded_data[0]
 
@@ -346,25 +339,21 @@ class VLite:
             value = {}
         self._info = value
 
+
 """
 ---------------------
 --- Utility Code ----
 ---------------------
 """
-
-def ingest_text_chunks(chunks, db: VLite, metadata = None, key = None):
+def add_data(data, db: VLite, metadata = None, key = None):
     """Ingest text chunks into the database"""
     if key is None:
-        key = len(db.data) - 1
+        key = uuid.uuid4()
     key = str(key)
     
-    text_key = key or len(db.data) - 1
-    db.data[text_key] = []
+    db.data[key] = data
 
     if metadata is None:
         metadata = {}
-    metadata["id"] = text_key
-    db.metadata[text_key] = metadata
-
-    for chunk in chunks:
-        db.data[text_key].append(chunk)
+    metadata["id"] = key
+    db.metadata[key] = metadata
