@@ -5,9 +5,9 @@ This document outlines the roadmap for the Vlite VDB (Vector Database), a Python
 ## The Next Mile
  - ~~Fix "Remember by ID" functionality.~~ **(Done)**
     - ~~"Remember by ID" was implemented but was not functioning appropriately.~~
-- ~~Remove Chunking~~ **(Done)**
-    ~~- There is a function that automatically chunks and parses text/data by character count. However, we believe that preparsing should be done outside of the library and handled by the user, not the library.~~
-    ~~- By removing this, there will also be some simplifying changes regarding how chunks are currently stored.~~
+- ~~Remove Chunking:~~ **(Done)**
+    - ~~There is a function that automatically chunks and parses text/data by character count. However, we believe that preparsing should be done outside of the library and handled by the user, not the library.~~
+    - ~~By removing this, there will also be some simplifying changes regarding how chunks are currently stored.~~
 - Revisit Metadata and Vector Storage.
     - Currently the metadata and vectors are stored in a simple but odd way as a slap dash method for immediate support on a project.
     - The structure of the keys, vectors, data and metadata will be revisited in interest of simplifying the current code.
