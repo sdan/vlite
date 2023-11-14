@@ -12,8 +12,20 @@ if __name__ == '__main__':
     db.memorize("Dogs are descended from wolves.", metadata={"type": "animal"})
     db.memorize("The longest river in the world is the Nile.", id="Five")
     db.memorize("American football is the most popular sport in the United States.", metadata={"type": "sport"})
+    print(f"{db.entry_count} entries added to database.")
 
     data, metadata, score = db.remember("What do tadpoles eat?")
     print("Data: ", data)
     print("Metadata: ", metadata)
     print("Score: ", score)
+
+    db.forget("One")
+    db.forget("Two")
+    db.forget("Three")
+    db.forget("Four")
+    db.forget("Five")
+    print(f"{db.entry_count} entries remaining in database.\n")
+
+    print("Keys:")
+    for vector in db._vector_key_store:
+        print(vector)

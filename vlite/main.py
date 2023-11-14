@@ -204,6 +204,14 @@ class VLite:
             metadata = [self.metadata[key] for key in top_k_keys]
             similiarities = sims[top_k_idx]
             return data, metadata, similiarities
+    
+    def forget(self, id: str):
+        """Delete an entry from the database by id."""
+        del self.data[id]
+        del self.metadata[id]
+        self.vectors = np.delete(self.vectors, self._vector_key_store.index(id), 0)
+        self._vector_key_store.remove(id)
+        self.save()
             
     def save(self):
         """Save the database to disk."""
@@ -245,18 +253,6 @@ class VLite:
     def model(self, value):
         """The model used to generate vectors."""
         self._model = value
-
-    @property
-    def texts(self):
-        """The texts in the database. Deprecated. Use VLite.data instead."""
-        warnings.warn("VLite.texts is deprecated. Use VLite.data instead.", DeprecationWarning)
-        return self._data
-    
-    @texts.setter
-    def texts(self, value):
-        """The texts in the database. Deprecated. Use VLite.data instead."""
-        warnings.warn("VLite.texts is deprecated. Use VLite.data instead.", DeprecationWarning)
-        self._data = value
 
     @property
     def data(self):
@@ -324,6 +320,11 @@ class VLite:
     def vectors(self, value):
         """Embedding vectors stored in the database."""
         self._vectors = value
+    
+    @property
+    def entry_count(self):
+        """The number of entries in the database."""
+        return len(self._data)
     
     @property
     def info(self):
