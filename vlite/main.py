@@ -136,7 +136,7 @@ class VLite:
 
         return top_k_idx, sims[top_k_idx]
 
-    def memorize(self, text: str, id: Any=None, metadata: Any=None, chunk_size=256) -> Tuple[str, List[float]]:
+    def memorize(self, text: str, id: Any=None, metadata: Any=None) -> Tuple[str, List[float]]:
         """
         Add a text to the database.
 
@@ -149,12 +149,10 @@ class VLite:
             id = str(id)
         else:
             id = uuid.uuid4()
-        print(f'memorize id {id}')
         
         encoded_data = self.model.embed(texts=text, device=self.device)
         self.vectors = np.vstack((self.vectors, encoded_data))
-        #TODO: Append to vector_key_store instead of extending it when chunking is removed.
-        self._vector_key_store.append(id) #Inserting the same vector_key for all chunks so indexers match up
+        self._vector_key_store.append(id)
         add_data(text, self, metadata, id)
         self.save()
         return id, encoded_data[0]
@@ -346,7 +344,7 @@ class VLite:
 ---------------------
 """
 def add_data(data, db: VLite, metadata = None, key = None):
-    """Ingest text chunks into the database"""
+    """Add entry to the database"""
     if key is None:
         key = uuid.uuid4()
     key = str(key)
