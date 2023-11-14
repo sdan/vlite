@@ -5,7 +5,7 @@ This document outlines the roadmap for the Vlite VDB (Vector Database), a Python
 ## The Next Mile
  - ~~Fix "Remember by ID" functionality.~~ **(Done)**
     - ~~"Remember by ID" was implemented but was not functioning appropriately.~~
-- ~~Remove Chunking:~~ **(Done)**
+- ~~Remove Chunking~~ **(Done)**
     - ~~There is a function that automatically chunks and parses text/data by character count. However, we believe that preparsing should be done outside of the library and handled by the user, not the library.~~
     - ~~By removing this, there will also be some simplifying changes regarding how chunks are currently stored.~~
 - Revisit Metadata and Vector Storage.
@@ -16,11 +16,11 @@ This document outlines the roadmap for the Vlite VDB (Vector Database), a Python
     - Unit tests could be better and are quite useless.
     - There is currently quite a bit of undescriptive verbosity that needs to be cleaned up.
     - All of these will be cleaned up before adding new functionality.
-- Delete
-    - There is currently no support for deleting items in the VDB.
-    - There are several use cases, such as bad entries from automatic data parsing or items you no longer want available for query like discontinued items, in which deletion rather than remaking the database is preferred.
-    - For sure, you'll be able to delete by ID.
-    - It is possible delete by similarity might be a useful, but it is not clear what scenario that would be. So this is not immediately planned unless there seems to be a regular use case for this.
+- ~~Delete~~ **(DONE)**
+    - ~~There is currently no support for deleting items in the VDB.~~
+    - ~~There are several use cases, such as bad entries from automatic data parsing or items you no longer want available for query like discontinued items, in which deletion rather than remaking the database is preferred.~~
+    - ~~For sure, you'll be able to delete by ID.~~
+    - ~~It is possible delete by similarity might be a useful, but it is not clear what scenario that would be. So this is not immediately planned unless there seems to be a regular use case for this.~~
 - Update
     - Currently, there is no support for updating any aspect of individual data entries.
     - There will be support for updating the data, the metadata, and the key.
