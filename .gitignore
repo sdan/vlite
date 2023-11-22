@@ -33,6 +33,7 @@ wheels/
 *.whl
 pip-wheel-metadata/
 share/python-wheels/
+.venv/
 
 # Unit test / coverage reports
 htmlcov/
