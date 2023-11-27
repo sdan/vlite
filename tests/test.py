@@ -6,6 +6,7 @@ import uuid
 from model import EmbeddingModel
 from main import VLite
 
+
 class TestVLite(unittest.TestCase):
     def setUp(self):
         self.vlite = VLite()
@@ -24,13 +25,23 @@ class TestVLite(unittest.TestCase):
         print("[test_memorize] remembered")
         self.vlite.remember(text="Overall, while common law judges are seen as central figures in shaping and interpreting the law, civil law judges traditionally have more limited roles and are viewed as functionaries. How ever, there are ongoing changes and developments in the civil law tradition that are expanding the scope and power of judges. Legal science, also known as systematic jurisprudence or conceptual jurisprudence, is a dominant school of thought within the civi l law tradition. It emerged in the 19th century and is primarily associated with German legal scholars. Legal science emphasizes the scientific study of law and seeks to discover inherent principles and relationships within legal materials. It aims to crea te a systematic and coherent legal structure by developing")
         print("[test_memorize] remembered 2")
-    
-    # def test_sentence_transformers(self):
-    #     self.vlite.remember_bench(query="civil law", corpus=self.long_data_2)
-    #     print("[test_sentence_transformers] test 1")
+
+    def test_autocut(self):
+        self.vlite.memorize("Hello there")
+        self.vlite.memorize("I am obi wan")
+        self.vlite.memorize("Ray Del Vecchio")
+        self.vlite.memorize("Ivan is cool")
+        self.vlite.memorize("What's up")
+        self.vlite.memorize("Testing these functions")
+        self.vlite.memorize("Vectors are lit")
+        self.vlite.memorize("Minecraft")
+        print(self.vlite.remember('Star Wars', top_k=1, autocut=True))
+        print("[test_autocut] with 1 cluster")
+        print(self.vlite.remember('Star Wars', top_k=2, autocut=True))
+        print("[test_autocut] with 2 clusters")
+        print(self.vlite.remember('Star Wars', top_k=3, autocut=True))
+        print("[test_autocut] with 3 clusters")
+
 
 if __name__ == '__main__':
     unittest.main()
-
-# [[ 0.17383387  0.16366634 -0.0433376   0.02018122  0.10868128  0.02777902
-#    0.16902854  0.50703027  0.27861555  0.42250543  0.28749501  0.47240564]]

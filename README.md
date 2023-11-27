@@ -1,8 +1,8 @@
 # VLite V2
 
-Improvements upon [VLite](https://github.com/sdan/vlite). Still blazing fast, and still in Numpy, but with
+Improvements upon the original [VLite](https://github.com/sdan/vlite). Still blazing fast, and still in Numpy, but with
 many more features. You can find the original information about the project from Surya [here](https://twitter.com/sdand/status/1676256437918633984).
-It's still faster than other VDBs.
+All written in < 250 lines of Python!
 
 # About Section (Original)
 

@@ -74,7 +74,7 @@ class VLite:
                 std_dev = np.std(sim_diff)
                 cluster_idxs = np.where(sim_diff > std_dev)[0]  # indices marking the end of each autocut cluster
                 k = min(top_k, len(cluster_idxs))
-                top_k_idx = top_k_idx[0:cluster_idxs[k - 1] + 1]
+                top_k_idx = top_k_idx[0:cluster_idxs[k - 1] + 1]  # gets indices of elements in top k CLUSTERS
                 texts: list = [self.texts[idx] for idx in top_k_idx]
 
             else:
@@ -91,16 +91,3 @@ class VLite:
     def save(self):
         with open(self.collection, 'wb') as f:
             np.savez(f, texts=self.texts, metadata=self.metadata, vectors=self.vectors)
-
-
-if __name__ == "__main__":
-    db = VLite(collection_name="test.npz")
-    # db.memorize("Hello there")
-    # db.memorize("I am obi wan")
-    # db.memorize("Ray Del Vecchio")
-    # db.memorize("Ivan is cool")
-    # db.memorize("What's up")
-    # db.memorize("Testing these functions")
-    # db.memorize("Vectors are lit")
-    # db.memorize("Minecraft")
-    print(db.remember('Star Wars', top_k=1, autocut=True))

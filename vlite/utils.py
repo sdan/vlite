@@ -18,8 +18,7 @@ def chop_and_chunk(text, max_seq_length):
         
     chunks = []
     for t in text: 
-        # Split by newlines 
-        parts = re.split('\n+', t)  
+        parts = re.split('\n+', t)  # split by newline
         
         for p in parts:
             tokens = p.split()

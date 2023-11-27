@@ -5,8 +5,6 @@ import os
 from utils import load_file
 import cProfile
 from pstats import Stats
-import matplotlib.pyplot as plt
-
 
 
 class TestVLite(unittest.TestCase):
@@ -62,6 +60,7 @@ class TestVLite(unittest.TestCase):
                 _, top_sims = self.vlite.remember(query)
         stats = Stats(pr)
         stats.strip_dirs().sort_stats("time").print_stats()
+
 
 if __name__ == '__main__':
     unittest.main()
