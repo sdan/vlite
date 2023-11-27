@@ -11,8 +11,6 @@ class VLite:
     '''
 
     def __init__(self, collection_name=None, device='mps', model_name=None):
-
-        # Filename must be unique between runs. Saving to the same file will append vectors to previous run's vectors
         if collection_name is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection_name = f"vlite_{current_datetime}.npz"
@@ -52,7 +50,11 @@ class VLite:
         self.save()
         return id, self.vectors
 
-    def remember(self, text=None, top_k=5, id=None, return_metadata=False, return_similarities=False) -> tuple:
+    def remember(self, text=None, top_k=0, id=None, return_metadata=False, return_similarities=False) -> tuple:
+        """
+        Method to remember vectors given text OR an ID. Will always return the text, and can specify what else
+        we want to return with the return_THING flag. If top_k=0 (not passed), assume the use of the autocut feature.
+        """
         if not id and not text:
             raise Exception("Please input either text or ID to retrieve from.")
         if id:
@@ -61,16 +63,21 @@ class VLite:
             sims = cos_sim(self.model.embed(texts=text, device=self.device), self.vectors)
             sims = sims[0]
 
-            # top_k cannot be higher than the number of similarities returned
-            top_k = min(top_k, len(sims))
+            if top_k <= 0:
+                # TODO: autocut implement here!
+                texts: list = []
 
-            # Use np.argpartition to partially sort only the top k values
-            top_k_idx = np.argpartition(sims, -top_k)[-top_k:]
+            else:
+                # top_k cannot be higher than the number of similarities returned
+                top_k = min(top_k, len(sims))
 
-            # Use np.argsort to sort just those top k indices
-            top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]
+                # Use np.argpartition to partially sort only the top k values
+                top_k_idx = np.argpartition(sims, -top_k)[-top_k:]
 
-            texts: list = [self.texts[idx] for idx in top_k_idx]
+                # Use np.argsort to sort just those top k indices
+                top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]
+
+                texts: list = [self.texts[idx] for idx in top_k_idx]
 
             return_tuple = (texts,)
             if return_metadata:
