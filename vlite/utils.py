@@ -1,9 +1,7 @@
 import numpy as np
-import pysbd
-import PyPDF2
 import itertools
 from typing import List
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer
 import regex as re
 
 
@@ -38,19 +36,13 @@ def chop_and_chunk(text, max_seq_length):
             if chunk != '':
                 chunks.append(chunk.strip())
     return chunks
-    
+
+
 def cos_sim(a, b):
     sims = a @ b.T
     sims /= np.linalg.norm(a) * np.linalg.norm(b, axis=1) 
     return sims
 
-def load_file(pdf_path):
-    extracted_text = []
-    with open(pdf_path, "rb") as file:
-        reader = PyPDF2.PdfReader(file)
-        for page in iter(reader.pages):
-            extracted_text.append(page.extract_text())  
-    return extracted_text
 
 def visualize_tokens(token_values: List[str]) -> None:
         backgrounds = itertools.cycle(
@@ -58,6 +50,7 @@ def visualize_tokens(token_values: List[str]) -> None:
         )
         interleaved = itertools.chain.from_iterable(zip(backgrounds, token_values))
         print(("".join(interleaved) + "\u001b[0m"))
+
 
 def token_count(texts):
         tz = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2', use_fast=True)

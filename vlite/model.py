@@ -24,7 +24,6 @@ class EmbeddingModel:
         self.max_seq_length = self.model.embeddings.position_embeddings.num_embeddings
 
     def embed(self, texts, max_seq_length=256, device="mps"):
-
         if (torch.backends.mps.is_available()):
             dev = torch.device("mps")
         else:

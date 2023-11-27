@@ -6,10 +6,6 @@ import datetime
 
 
 class VLite:
-    '''
-    vlite is a simple vector database that stores vectors in a numpy array.
-    '''
-
     def __init__(self, collection_name=None, device='mps', model_name=None):
         if collection_name is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -50,20 +46,23 @@ class VLite:
         self.save()
         return id, self.vectors
 
-    def remember(self, text=None, top_k=0, id=None, return_metadata=False, return_similarities=False) -> tuple:
+    def remember(self, text=None, id=None, top_k=5, autocut=False, return_metadata=False, return_similarities=False) -> tuple:
         """
         Method to remember vectors given text OR an ID. Will always return the text, and can specify what else
-        we want to return with the return_THING flag. If top_k=0 (not passed), assume the use of the autocut feature.
+        we want to return with the return_THING flag. If we set autocut=True, top_k will function as the number of
+        CLUSTERS to return, not results.
         """
         if not id and not text:
             raise Exception("Please input either text or ID to retrieve from.")
         if id:
             return self.metadata[id]
+        if top_k <= 0:
+            raise Exception("Please input k >= 1.")
         if text:
             sims = cos_sim(self.model.embed(texts=text, device=self.device), self.vectors)
             sims = sims[0]
 
-            if top_k <= 0:
+            if autocut:
                 # TODO: autocut implement here!
                 texts: list = []
 

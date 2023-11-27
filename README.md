@@ -23,3 +23,5 @@ search key-value database
 across a given database
 * When chunking, removed default newline split return; the db will now chunk ANY text, even if it already contains
 some newlines (\n) within it
+* Naive implementation of Weaviate's [autocut](https://weaviate.io/developers/weaviate/search/hybrid#limiting-results-with-autocut-and-auto_limit)! In the 
+`remember` function, we no longer need to set K, rather, clusters of results are returned with each other.
