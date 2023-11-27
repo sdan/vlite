@@ -25,3 +25,7 @@ across a given database
 some newlines (\n) within it
 * Naive implementation of Weaviate's [autocut](https://weaviate.io/developers/weaviate/search/hybrid#limiting-results-with-autocut-and-auto_limit)! In the 
 `remember` function, we no longer need to set K, rather, clusters of results are returned with each other.
+  * I implement this by first finding the differences in similarity between the top X (hyperparameter) scores, calculating
+  the standard deviation, then clustering by differences LARGER than the standard deviation. Results are returned
+  then based on the number of CLUSTERS you want to reference, rather than direct elements.
+  * EX: `[10, 9, 4, 3, -2]` -> `[10, 9], [4, 3], [-2]`, if `k=2` we return elements associated with differences `[10, 9, 4, 3]`

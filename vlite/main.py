@@ -1,7 +1,7 @@
 import numpy as np
 from uuid import uuid4
-from .model import EmbeddingModel
-from .utils import chop_and_chunk, cos_sim
+from model import EmbeddingModel
+from utils import chop_and_chunk, cos_sim
 import datetime
 
 
@@ -46,11 +46,11 @@ class VLite:
         self.save()
         return id, self.vectors
 
-    def remember(self, text=None, id=None, top_k=5, autocut=False, return_metadata=False, return_similarities=False) -> tuple:
+    def remember(self, text=None, id=None, top_k=3, autocut=False, autocut_amount=50, return_metadata=False, return_similarities=False) -> tuple:
         """
         Method to remember vectors given text OR an ID. Will always return the text, and can specify what else
         we want to return with the return_THING flag. If we set autocut=True, top_k will function as the number of
-        CLUSTERS to return, not results.
+        CLUSTERS to return, not results. autocut_amount is how many items we run the autocut algorithm over.
         """
         if not id and not text:
             raise Exception("Please input either text or ID to retrieve from.")
@@ -62,20 +62,22 @@ class VLite:
             sims = cos_sim(self.model.embed(texts=text, device=self.device), self.vectors)
             sims = sims[0]
 
+            k = autocut_amount if autocut else top_k  # set default amount to run autocut over as 50 here
+            k = min(k, len(sims))
+
+            top_k_idx = np.argpartition(sims, -k)[-k:]  # pulls the UNSORTED indices for the top k similarities
+            top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]  # sorts top k indices descending
+            desc_similarities = sims[top_k_idx]
+
             if autocut:
-                # TODO: autocut implement here!
-                texts: list = []
+                sim_diff = np.diff(desc_similarities) * -1
+                std_dev = np.std(sim_diff)
+                cluster_idxs = np.where(sim_diff > std_dev)[0]  # indices marking the end of each autocut cluster
+                k = min(top_k, len(cluster_idxs))
+                top_k_idx = top_k_idx[0:cluster_idxs[k - 1] + 1]
+                texts: list = [self.texts[idx] for idx in top_k_idx]
 
             else:
-                # top_k cannot be higher than the number of similarities returned
-                top_k = min(top_k, len(sims))
-
-                # Use np.argpartition to partially sort only the top k values
-                top_k_idx = np.argpartition(sims, -top_k)[-top_k:]
-
-                # Use np.argsort to sort just those top k indices
-                top_k_idx = top_k_idx[np.argsort(sims[top_k_idx])[::-1]]
-
                 texts: list = [self.texts[idx] for idx in top_k_idx]
 
             return_tuple = (texts,)
@@ -83,10 +85,22 @@ class VLite:
                 metadata: list = [self.metadata[idx] for idx in top_k_idx]
                 return_tuple = return_tuple + (metadata,)
             if return_similarities:
-                similarities = sims[top_k_idx]
-                return_tuple = return_tuple + (similarities,)
+                return_tuple = return_tuple + (desc_similarities,)
             return return_tuple
 
     def save(self):
         with open(self.collection, 'wb') as f:
             np.savez(f, texts=self.texts, metadata=self.metadata, vectors=self.vectors)
+
+
+if __name__ == "__main__":
+    db = VLite(collection_name="test.npz")
+    # db.memorize("Hello there")
+    # db.memorize("I am obi wan")
+    # db.memorize("Ray Del Vecchio")
+    # db.memorize("Ivan is cool")
+    # db.memorize("What's up")
+    # db.memorize("Testing these functions")
+    # db.memorize("Vectors are lit")
+    # db.memorize("Minecraft")
+    print(db.remember('Star Wars', top_k=1, autocut=True))
