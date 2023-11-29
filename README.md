@@ -2,7 +2,7 @@
 
 Improvements upon the original [VLite](https://github.com/sdan/vlite). Still blazing fast, and still in Numpy, but with
 many more features. You can find the original information about the project from Surya [here](https://twitter.com/sdand/status/1676256437918633984).
-All written in < 250 lines of Python!
+All written in < 250 lines of Python! Download via `pip install vlite2`.
 
 # About Section (Original)
 
@@ -29,3 +29,8 @@ some newlines (\n) within it
   the standard deviation, then clustering by differences LARGER than the standard deviation. Results are returned
   then based on the number of CLUSTERS you want to reference, rather than direct elements.
   * EX: `[10, 9, 4, 3, -2]` -> `[10, 9], [4, 3], [-2]`, if `k=2` we return elements associated with differences `[10, 9, 4, 3]`
+
+# Pip Deploy
+1. `python3 setup.py sdist bdist_wheel`
+2. `pip install twine`
+3. `twine upload dist/*`

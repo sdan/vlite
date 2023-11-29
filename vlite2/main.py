@@ -1,19 +1,19 @@
 import numpy as np
 from uuid import uuid4
-from model import EmbeddingModel
-from utils import chop_and_chunk, cos_sim
+from .model import EmbeddingModel
+from .utils import chop_and_chunk, cos_sim
 import datetime
 
 
 class VLite:
-    def __init__(self, collection_name=None, device='mps', model_name=None):
+    def __init__(self, collection_name=None, device='mps', model=None):
         if collection_name is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection_name = f"vlite_{current_datetime}.npz"
 
         self.collection = collection_name
         self.device = device
-        self.model = EmbeddingModel() if model_name is None else EmbeddingModel(model_name)
+        self.model = model if model else EmbeddingModel()
         try:
             with np.load(self.collection, allow_pickle=True) as data:
                 self.texts = data['texts'].tolist()

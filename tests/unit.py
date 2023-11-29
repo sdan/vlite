@@ -32,9 +32,9 @@ class TestVLite(unittest.TestCase):
 
     def tearDown(self):
         # remove the file
-        if os.path.exists('vlite.pkl'):
-            print("[+] Removing vlite.pkl")
-            os.remove('vlite.pkl')
+        if os.path.exists('vlite2.pkl'):
+            print("[+] Removing vlite2.pkl")
+            os.remove('vlite2.pkl')
 
     def test_add_vector(self):
         with cProfile.Profile() as pr:
