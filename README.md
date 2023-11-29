@@ -2,7 +2,7 @@
 
 Improvements upon the original [VLite](https://github.com/sdan/vlite). Still blazing fast, and still in Numpy, but with
 many more features. You can find the original information about the project from Surya [here](https://twitter.com/sdand/status/1676256437918633984).
-All written in < 250 lines of Python! Download via `pip install vlite2`.
+All written in < 250 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/).
 
 # About Section (Original)
 
