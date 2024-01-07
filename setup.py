@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='vlite2',
-    version='1.0.0',
+    version='1.1.0',
     author='Ray Del Vecchio',
     author_email='ray@cerebralvalley.ai',
     description='Improved simple vector database in Numpy. Original by @sdan.',
