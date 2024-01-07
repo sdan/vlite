@@ -74,7 +74,10 @@ class VLite:
                 std_dev = np.std(sim_diff)
                 cluster_idxs = np.where(sim_diff > std_dev)[0]  # indices marking the end of each autocut cluster
                 k = min(top_k, len(cluster_idxs))
-                top_k_idx = top_k_idx[0:cluster_idxs[k - 1] + 1]  # gets indices of elements in top k CLUSTERS
+                if cluster_idxs.size > 0:
+                    top_k_idx = top_k_idx[0:cluster_idxs[k - 1] + 1]  # gets indices of elements in top k CLUSTERS
+                else:
+                    top_k_idx = top_k_idx[0:k]  # gets indices of elements in top k if there are no
                 texts: list = [self.texts[idx] for idx in top_k_idx]
 
             else:

@@ -3,8 +3,10 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import pickle
 import uuid
-from model import EmbeddingModel
-from main import VLite
+import sys
+sys.path.append('../vlite2')
+from vlite2.model import EmbeddingModel
+from vlite2.main import VLite
 
 
 class TestVLite(unittest.TestCase):

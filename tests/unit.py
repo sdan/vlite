@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
-from main import VLite
 import os
+import sys
+from main import VLite
 from utils import load_file
 import cProfile
 from pstats import Stats
