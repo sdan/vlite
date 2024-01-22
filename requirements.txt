@@ -1,10 +1,6 @@
 numpy==1.23.2
-pandas==1.4.4
-pysbd==0.3.4
 Requests==2.31.0
-sentence_transformers==2.2.2
 setuptools==65.3.0
 torch==1.13.1
-tqdm==4.64.1
 transformers==4.25.1
 usearch

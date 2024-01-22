@@ -1,12 +1,11 @@
 # VLite V2
 
-Improvements upon the original [VLite](https://github.com/sdan/vlite). Still blazing fast, and still in Numpy, but with
-many more features. You can find the original information about the project from Surya [here](https://twitter.com/sdand/status/1676256437918633984).
-All written in < 250 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/).
+Improvements upon the original [VLite](https://github.com/sdan/vlite). Blazing fast and with even more features. You can find the original information about the project from Surya [here](https://twitter.com/sdand/status/1676256437918633984).
+All written in < 200 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/).
 
-# V2 Improvements
+# Implemented V2 Improvements
 
-I (Ray) had been using this for a few projects and found I had some more use cases not in the original. New features are
+I had been using this for a few projects and found I had some more use cases not in the original. New features are
 as follows:
 
 * VLite now allows you to remember metadata associated with topk texts, allowing it to be used as a semantic 
@@ -21,8 +20,14 @@ some newlines (\n) within it
   the standard deviation, then clustering by differences LARGER than the standard deviation. Results are returned
   then based on the number of CLUSTERS you want to reference, rather than direct elements.
   * EX: `[10, 9, 4, 3, -2]` -> `[10, 9], [4, 3], [-2]`, if `k=2` we return elements associated with differences `[10, 9, 4, 3]`
+* Integration with [USearch](https://github.com/unum-cloud/usearch) as the vector search engine instead of custom numpy comparisons
+  * USearch handles search, vector computation, and indexing natively as the fastest vector search engine in the world
 
 # Pip Deploy
 1. `python3 setup.py sdist bdist_wheel`
 2. `pip install twine`
 3. `twine upload dist/*`
+
+# Future Improvements
+* Save `.info` and `.index` files in one, or better linking / state sharing between the two
+* Better system to tracking and incrementing ID

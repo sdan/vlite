@@ -6,8 +6,10 @@ __pycache__
 # CSV files
 *.csv
 
-# Numpy data files
+# Data Files
 *.npz
+*.info
+*.index
 
 # PDF files
 *.pdf
