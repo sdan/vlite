@@ -1,7 +1,8 @@
 # VLite V2
 
 V2 is a collection and implementation of improvements upon the original amazing [VLite](https://github.com/sdan/vlite). Blazing fast and with even more features.
-All written in < 200 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/).
+All written in < 200 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/). You can find benchmarking
+code at this repo [here](https://github.com/raydelvecchio/vdb-benchmark).
 
 # Implemented V2 Improvements
 
