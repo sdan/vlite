@@ -32,7 +32,7 @@ class TestVLite(unittest.TestCase):
         print("[test_autocut] with 1 cluster")
         print(self.vlite.remember('Star Wars', top_k=2, autocut=True))
         print("[test_autocut] with 2 clusters")
-        print(self.vlite.remember('Star Wars', top_k=3, autocut=True))
+        print(self.vlite.remember('Star Wars', top_k=3, autocut=True, get_metadata=True, get_similarities=True))
         print("[test_autocut] with 3 clusters")
 
 
