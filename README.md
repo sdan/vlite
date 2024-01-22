@@ -10,6 +10,7 @@ as follows:
 
 * VLite now allows you to remember metadata associated with topk texts, allowing it to be used as a semantic 
 search key-value database
+* All important internal variables are private for enhanced safety and security; only device is left exposed since that can be changed on use case
 * Can now set max sequence length for chunking for each independent memorize operation; great for more varied data
 across a given database
 * When chunking, removed default newline split return; the db will now chunk ANY text, even if it already contains

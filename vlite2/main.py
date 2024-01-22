@@ -56,7 +56,7 @@ class VLite2:
         self.save()
         return self.__document_id - 1
 
-    def remember(self, text: str = None, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> tuple:
+    def remember(self, text: str = None, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> dict:
         """
         Method to remember vectors given text. Will always return the text, and can specify what else
         we want to return with the get_THING flag. If we set autocut=True, top_k will function as the number of
@@ -81,21 +81,23 @@ class VLite2:
             cluster_idxs = np.where(sim_diff > std_dev)[0]  # indices marking the position of the END of each autocut cluster
             k = min(top_k, len(cluster_idxs))  # ensures that only pull a MAX of top_k clusters (can have less if no other relevant clusters found)
             if cluster_idxs.size > 0:
-                indices = indices[0:cluster_idxs[k - 1] + 1]  # gets indices of elements in top k CLUSTERS
+                endpoint = cluster_idxs[k - 1] + 1  # gets indices of elements in top k CLUSTERS
             else:
-                indices = indices[0:k]
+                endpoint = k
+            indices = indices[0:endpoint]
+            scores = scores[0:endpoint]
             texts: list = [self.__texts[idx] for idx in indices]
 
         else:
             texts: list = [self.__texts[idx] for idx in indices]
 
-        return_tuple = (texts,)
+        results = {"texts": texts}
         if get_metadata:
             metadata: list = [self.__metadata[idx] for idx in indices]
-            return_tuple = return_tuple + (metadata,)
+            results["metadata"] = metadata
         if get_similarities:
-            return_tuple = return_tuple + (scores,)
-        return return_tuple
+            results["scores"] = scores
+        return results
 
     def save(self):
         """
