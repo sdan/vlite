@@ -5,7 +5,7 @@ from usearch.index import Index, Matches
 import datetime
 import os
 
-class VLite:
+class VLite2:
     def __init__(self, vdb_name=None, device='mps', model=None):
         if vdb_name is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -13,30 +13,30 @@ class VLite:
         else:
             vdb_name = vdb_name.replace(".info", "").replace(".index", "")  # filename cannot include one of these to limit errors
 
-        self.metadata_file = f"{vdb_name}.info"
-        self.index_file = f"{vdb_name}.index"
+        self.__metadata_file = f"{vdb_name}.info"
+        self.__index_file = f"{vdb_name}.index"
 
-        metadata_exists = os.path.exists(self.metadata_file)
-        index_exists = os.path.exists(self.index_file)
+        metadata_exists = os.path.exists(self.__metadata_file)
+        index_exists = os.path.exists(self.__index_file)
         if metadata_exists != index_exists:
             raise Exception("Must have BOTH .info and .index file present. Cannot continue unless neither or both files exist.")
 
-        self.device = device
-        self.embed_model = model if model else EmbeddingModel()
+        self.device = device  # keep this exposed; may want to change device
+        self.__embed_model = model if model else EmbeddingModel()
 
-        self.index: Index = Index(ndim=self.embed_model.dimension, metric='cos', path=self.index_file)  # existence handled within USearch Index Object
+        self.__index: Index = Index(ndim=self.__embed_model.dimension, metric='cos', path=self.__index_file)  # existence handled within USearch Index Object
 
         if metadata_exists:
-            with np.load(self.metadata_file, allow_pickle=True) as data:
-                self.texts = data['texts'].tolist()
-                self.metadata = data['metadata'].tolist()
-                self.chunk_id = int(data['chunk_id'])
-                self.document_id = int(data['document_id'])
+            with np.load(self.__metadata_file, allow_pickle=True) as data:
+                self.__texts = data['texts'].tolist()
+                self.__metadata = data['metadata'].tolist()
+                self.__chunk_id = int(data['chunk_id'])
+                self.__document_id = int(data['document_id'])
         else:
-            self.texts = {}
-            self.metadata = {}
-            self.chunk_id = 0
-            self.document_id = 0
+            self.__texts = {}
+            self.__metadata = {}
+            self.__chunk_id = 0
+            self.__document_id = 0
 
     def memorize(self, text: str, max_seq_length: int = 512, metadata: dict = None) -> int:
         """
@@ -45,16 +45,16 @@ class VLite:
         chunks = chop_and_chunk(text, max_seq_length=max_seq_length)
 
         for chunk in chunks:
-            encoded_data = self.embed_model.embed(texts=chunk, device=self.device)  # adding each chunk to the db individually to work better with USearch
-            self.index.add(keys=self.chunk_id, vectors=encoded_data)
-            self.texts[self.chunk_id] = chunk
-            self.metadata[self.chunk_id] = metadata or {}
-            self.metadata[self.chunk_id]['document_id'] = self.document_id
-            self.chunk_id += 1
+            encoded_data = self.__embed_model.embed(texts=chunk, device=self.device)  # adding each chunk to the db individually to work better with USearch
+            self.__index.add(keys=self.__chunk_id, vectors=encoded_data)
+            self.__texts[self.__chunk_id] = chunk
+            self.__metadata[self.__chunk_id] = metadata or {}
+            self.__metadata[self.__chunk_id]['document_id'] = self.__document_id
+            self.__chunk_id += 1
 
-        self.document_id += 1
+        self.__document_id += 1
         self.save()
-        return self.document_id - 1
+        return self.__document_id - 1
 
     def remember(self, text: str = None, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> tuple:
         """
@@ -69,7 +69,7 @@ class VLite:
 
         count = autocut_amount if autocut else top_k  # sets the amount of elements we want to autocut over here
 
-        matches: Matches = self.index.search(self.embed_model.embed(texts=text, device=self.device), count=count, log=progress)
+        matches: Matches = self.__index.search(self.__embed_model.embed(texts=text, device=self.device), count=count, log=progress)
         matches = matches.to_list()
 
         indices = [match[0] for match in matches]  # indices of the top matches used to retrieve the text and metadata
@@ -84,14 +84,14 @@ class VLite:
                 indices = indices[0:cluster_idxs[k - 1] + 1]  # gets indices of elements in top k CLUSTERS
             else:
                 indices = indices[0:k]
-            texts: list = [self.texts[idx] for idx in indices]
+            texts: list = [self.__texts[idx] for idx in indices]
 
         else:
-            texts: list = [self.texts[idx] for idx in indices]
+            texts: list = [self.__texts[idx] for idx in indices]
 
         return_tuple = (texts,)
         if get_metadata:
-            metadata: list = [self.metadata[idx] for idx in indices]
+            metadata: list = [self.__metadata[idx] for idx in indices]
             return_tuple = return_tuple + (metadata,)
         if get_similarities:
             return_tuple = return_tuple + (scores,)
@@ -101,6 +101,6 @@ class VLite:
         """
         Saves the database metadata and index files.
         """
-        with open(self.metadata_file, 'wb') as f:
-            np.savez(f, texts=self.texts, metadata=self.metadata, chunk_id=self.chunk_id, document_id=self.document_id)
-        self.index.save(path_or_buffer=self.index_file)
+        with open(self.__metadata_file, 'wb') as f:
+            np.savez(f, texts=self.__texts, metadata=self.__metadata, chunk_id=self.__chunk_id, document_id=self.__document_id)
+        self.__index.save(path_or_buffer=self.__index_file)

@@ -22,8 +22,8 @@ some newlines (\n) within it
   * If K number of relevant clusters do NOT exist, then the maximum number of clusters possible is returned by default
   * EX: `[10, 9, 4, 3, -2]` -> `[10, 9], [4, 3], [-2]`, if `k=2` we return elements associated with differences `[10, 9, 4, 3]`
 * Integration with [USearch](https://github.com/unum-cloud/usearch) as the vector search engine instead of custom numpy comparisons
-  * USearch handles search, vector computation, and indexing natively as the fastest vector search engine in the world
-  * Documentation for using USearch found [here](https://unum-cloud.github.io/usearch/python/reference.html#usearch.index.Index.add)
+  * USearch handles search, vector computation, and indexing natively as the fastest vector search engine in the world!
+  * Documentation for using USearch found [here](https://unum-cloud.github.io/usearch/python/reference.html#usearch.index.Index.add)!
 
 # Pip Deploy
 1. `python3 setup.py sdist bdist_wheel`

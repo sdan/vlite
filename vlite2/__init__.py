@@ -1,2 +1,2 @@
-from .main import VLite
+from .main import VLite2
 from .model import EmbeddingModel
