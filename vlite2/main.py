@@ -30,25 +30,29 @@ class VLite:
             with np.load(self.metadata_file, allow_pickle=True) as data:
                 self.texts = data['texts'].tolist()
                 self.metadata = data['metadata'].tolist()
-                self.id = int(data['id'])
+                self.chunk_id = int(data['chunk_id'])
+                self.document_id = int(data['document_id'])
         else:
             self.texts = {}
             self.metadata = {}
-            self.id = 0
+            self.chunk_id = 0
+            self.document_id = 0
 
     def memorize(self, text: str, max_seq_length: int = 512, id: int = None, metadata: dict = None) -> int:
         """
-        Memorizes the input text and returns the id associated with it in the database.
+        Memorizes the input text and returns the DOCUMENT ID (not chunk ID) associated with it in the database.
         """
         chunks = chop_and_chunk(text, max_seq_length=max_seq_length)
 
         for chunk in chunks:
             encoded_data = self.embed_model.embed(texts=chunk, device=self.device)  # adding each chunk to the db individually to work better with USearch
-            self.index.add(keys=self.id, vectors=encoded_data)
-            self.texts[self.id] = chunk
-            self.metadata[self.id] = metadata or {}
-            self.id += 1
+            self.index.add(keys=self.chunk_id, vectors=encoded_data)
+            self.texts[self.chunk_id] = chunk
+            self.metadata[self.chunk_id] = metadata or {}
+            self.metadata[self.chunk_id]['document_id'] = self.document_id
+            self.chunk_id += 1
 
+        self.document_id += 1
         self.save()
         return id
 
@@ -98,5 +102,5 @@ class VLite:
         Saves the database metadata and index files.
         """
         with open(self.metadata_file, 'wb') as f:
-            np.savez(f, texts=self.texts, metadata=self.metadata, id=self.id)
+            np.savez(f, texts=self.texts, metadata=self.metadata, chunk_id=self.chunk_id, document_id=self.document_id)
         self.index.save(path_or_buffer=self.index_file)
