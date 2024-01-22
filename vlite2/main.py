@@ -77,7 +77,7 @@ class VLite:
                 if cluster_idxs.size > 0:
                     top_k_idx = top_k_idx[0:cluster_idxs[k - 1] + 1]  # gets indices of elements in top k CLUSTERS
                 else:
-                    top_k_idx = top_k_idx[0:k]  # gets indices of elements in top k if there are no
+                    top_k_idx = top_k_idx[0:k]
                 texts: list = [self.texts[idx] for idx in top_k_idx]
 
             else:

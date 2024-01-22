@@ -4,14 +4,6 @@ Improvements upon the original [VLite](https://github.com/sdan/vlite). Still bla
 many more features. You can find the original information about the project from Surya [here](https://twitter.com/sdand/status/1676256437918633984).
 All written in < 250 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/).
 
-# About Section (Original)
-
-VLite is a vector database built for agents, ChatGPT Plugins, and other AI apps that need a fast and simple database to store vectors. 
-
-I (Surya) built it to support the millions of embeddings I generate , index, and sort with [ChatWith+ ChatGPT Plugins](https://plugins.sdan.io/) which run for millions of users. Most vector databases either repeatedly crashed on a daily basis or was too expensive for the throughput I was putting through.
-
-It uses Apple's Metal Performance Shaders via Pytorch to accelerate vector loading and uses CPU threading to accelerate vector queries to reduce time spent copying vectors from the GPU(MPS) to the CPU.
-
 # V2 Improvements
 
 I (Ray) had been using this for a few projects and found I had some more use cases not in the original. New features are
