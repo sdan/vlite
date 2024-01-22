@@ -19,5 +19,6 @@ setup(
         'tqdm',
         'transformers',
         'uuid',
+        'usearch'
     ],
 )
