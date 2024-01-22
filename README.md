@@ -27,10 +27,11 @@ some newlines (\n) within it
   * Documentation for using USearch found [here](https://unum-cloud.github.io/usearch/python/reference.html#usearch.index.Index.add)!
 
 # Pip Deploy
-1. `python3 setup.py sdist bdist_wheel`
-2. `pip install twine`
+1. Delete existing `dist` and `build`.
+2. `python3 setup.py sdist bdist_wheel`
 3. `twine upload dist/*`
 
 # Future Improvements
 * Save `.info` and `.index` files in one, or better linking / state sharing between the two
 * Better system to tracking and incrementing ID
+* Improve how we do chunk vectorizing
