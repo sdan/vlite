@@ -38,7 +38,7 @@ class VLite:
             self.chunk_id = 0
             self.document_id = 0
 
-    def memorize(self, text: str, max_seq_length: int = 512, id: int = None, metadata: dict = None) -> int:
+    def memorize(self, text: str, max_seq_length: int = 512, metadata: dict = None) -> int:
         """
         Memorizes the input text and returns the DOCUMENT ID (not chunk ID) associated with it in the database.
         """
@@ -54,7 +54,7 @@ class VLite:
 
         self.document_id += 1
         self.save()
-        return id
+        return self.document_id - 1
 
     def remember(self, text: str = None, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> tuple:
         """
