@@ -44,9 +44,11 @@ class VLite2:
         """
         chunks = chop_and_chunk(text, max_seq_length=max_seq_length)
         encoded_chunks = self.__embed_model.embed(texts=chunks, device=self.device)  # this is a numpy array, where each row is the vector for each chunk in chunks
+        
+        keys = np.arange(self.__chunk_id, self.__chunk_id + len(chunks))
+        self.__index.add(keys=keys, vectors=encoded_chunks)  # if you pass in ndarray, ndarray for keys, vectors, it processes in a batch add matching key to row (see USearch docs)
 
-        for chunk, chunk_vector in zip(chunks, encoded_chunks):
-            self.__index.add(keys=self.__chunk_id, vectors=chunk_vector)
+        for chunk in chunks:
             self.__texts[self.__chunk_id] = chunk
             self.__metadata[self.__chunk_id] = metadata or {}
             self.__metadata[self.__chunk_id]['document_id'] = self.__document_id
