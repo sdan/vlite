@@ -35,4 +35,3 @@ some newlines (\n) within it
 # Future Improvements
 * Save `.info` and `.index` files in one, or better linking / state sharing between the two
 * Better system to tracking and incrementing ID
-* Improve how we do chunk vectorizing
