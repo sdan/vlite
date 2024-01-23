@@ -107,3 +107,15 @@ class VLite2:
         with open(self.__metadata_file, 'wb') as f:
             np.savez(f, texts=self.__texts, metadata=self.__metadata, chunk_id=self.__chunk_id, document_id=self.__document_id)
         self.__index.save(path_or_buffer=self.__index_file)
+
+    def get_metadata_file(self) -> str:
+        """
+        Returns the file where metadata is located.
+        """
+        return self.__metadata_file
+
+    def get_index_file(self) -> str:
+        """
+        Returns the file where the index is located.
+        """
+        return self.__index_file
