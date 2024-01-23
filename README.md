@@ -33,5 +33,5 @@ some newlines (\n) within it
 3. `twine upload dist/*`
 
 # Future Improvements
-* Save `.info` and `.index` files in one, or better linking / state sharing between the two
+* Save `.info` and `.index` files in one, or better linking / state sharing between the two (hidden folder?)
 * Better system to tracking and incrementing ID
