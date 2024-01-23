@@ -14,9 +14,11 @@ class TestVLite(unittest.TestCase):
     def test_memorize(self):
         self.vlite.memorize(text=self.long_data_2)
         print("[test_memorize] memorized")
-        self.vlite.remember(text="civil law")
+
+        print(self.vlite.remember(text="civil law"))
         print("[test_memorize] remembered")
-        self.vlite.remember(text="Overall, while common law judges are seen as central figures in shaping and interpreting the law, civil law judges traditionally have more limited roles and are viewed as functionaries. How ever, there are ongoing changes and developments in the civil law tradition that are expanding the scope and power of judges. Legal science, also known as systematic jurisprudence or conceptual jurisprudence, is a dominant school of thought within the civi l law tradition. It emerged in the 19th century and is primarily associated with German legal scholars. Legal science emphasizes the scientific study of law and seeks to discover inherent principles and relationships within legal materials. It aims to crea te a systematic and coherent legal structure by developing")
+
+        print(self.vlite.remember(text="Overall, while common law judges are seen as central figures in shaping and interpreting the law, civil law judges traditionally have more limited roles and are viewed as functionaries. How ever, there are ongoing changes and developments in the civil law tradition that are expanding the scope and power of judges. Legal science, also known as systematic jurisprudence or conceptual jurisprudence, is a dominant school of thought within the civi l law tradition. It emerged in the 19th century and is primarily associated with German legal scholars. Legal science emphasizes the scientific study of law and seeks to discover inherent principles and relationships within legal materials. It aims to crea te a systematic and coherent legal structure by developing"))
         print("[test_memorize] remembered 2")
 
     def test_autocut(self):
@@ -28,13 +30,17 @@ class TestVLite(unittest.TestCase):
         self.vlite.memorize("Testing these functions")
         self.vlite.memorize("Vectors are lit")
         self.vlite.memorize("Minecraft")
+
         print(self.vlite.remember('Star Wars', top_k=1, autocut=True))
         print("[test_autocut] with 1 cluster")
+
         print(self.vlite.remember('Star Wars', top_k=2, autocut=True))
         print("[test_autocut] with 2 clusters")
+
         print(self.vlite.remember('Star Wars', top_k=3, autocut=True, get_metadata=True, get_similarities=True))
         print("[test_autocut] with 3 clusters")
 
 
 if __name__ == '__main__':
     unittest.main()
+    
