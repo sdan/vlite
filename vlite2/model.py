@@ -47,7 +47,7 @@ class EmbeddingModel:
 
         embeddings = mean_pooling(model_output, encoded_input['attention_mask'], device=device)
         tensor_embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-        np_embeddings = tensor_embeddings.cpu().numpy()  # Move tensor to CPU before converting to numpy
+        np_embeddings = tensor_embeddings.cpu().numpy()  # Move tensor to CPU before converting to numpy array
 
         return np_embeddings
 

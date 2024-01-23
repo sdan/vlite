@@ -43,10 +43,10 @@ class VLite2:
         Memorizes the input text and returns the DOCUMENT ID (not chunk ID) associated with it in the database.
         """
         chunks = chop_and_chunk(text, max_seq_length=max_seq_length)
+        encoded_chunks = self.__embed_model.embed(texts=chunks, device=self.device)  # this is a numpy array, where each row is the vector for each chunk in chunks
 
-        for chunk in chunks:
-            encoded_data = self.__embed_model.embed(texts=chunk, device=self.device)  # adding each chunk to the db individually to work better with USearch
-            self.__index.add(keys=self.__chunk_id, vectors=encoded_data)
+        for chunk, chunk_vector in zip(chunks, encoded_chunks):
+            self.__index.add(keys=self.__chunk_id, vectors=chunk_vector)
             self.__texts[self.__chunk_id] = chunk
             self.__metadata[self.__chunk_id] = metadata or {}
             self.__metadata[self.__chunk_id]['document_id'] = self.__document_id
