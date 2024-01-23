@@ -119,3 +119,13 @@ class VLite2:
         Returns the file where the index is located.
         """
         return self.__index_file
+    
+    def clear(self) -> str:
+        """
+        Clears the database of all entries.
+        """
+        self.__index.clear()
+        self.__texts = {}
+        self.__metadata = {}
+        self.__chunk_id = 0
+        self.__document_id = 0
