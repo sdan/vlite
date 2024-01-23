@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='vlite2',
-    version='3.1.0',
+    version='3.1.1',
     author='Ray Del Vecchio',
     author_email='ray@cerebralvalley.ai',
     description='Improved simple vector database, with many advanced proprietary features. Original by @sdan.',

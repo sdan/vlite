@@ -6,7 +6,7 @@ import datetime
 import os
 
 class VLite2:
-    def __init__(self, vdb_name: str =None, device: str ='mps', model=None):
+    def __init__(self, vdb_name: str = None, device: str ='mps', model=None):
         if vdb_name is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             vdb_name = f"vlite2_{current_datetime}"
