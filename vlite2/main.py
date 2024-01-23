@@ -6,7 +6,7 @@ import datetime
 import os
 
 class VLite2:
-    def __init__(self, vdb_name=None, device='mps', model=None):
+    def __init__(self, vdb_name: str =None, device: str ='mps', model=None):
         if vdb_name is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             vdb_name = f"vlite2_{current_datetime}"
@@ -54,6 +54,7 @@ class VLite2:
 
         self.__document_id += 1
         self.save()
+
         return self.__document_id - 1
 
     def remember(self, text: str = None, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> dict:
