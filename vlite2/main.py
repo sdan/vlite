@@ -120,6 +120,18 @@ class VLite2:
         """
         return self.__index_file
     
+    def get_metadata(self) -> dict:
+        """
+        Returns the metadata.
+        """
+        return self.__metadata
+
+    def get_texts(self) -> dict:
+        """
+        Returns the texts.
+        """
+        return self.__texts
+    
     def clear(self) -> str:
         """
         Clears the database of all entries.
