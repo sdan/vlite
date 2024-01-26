@@ -4,6 +4,20 @@ V2 is a collection and implementation of improvements upon the original amazing 
 All written in < 200 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/). You can find benchmarking
 code at this repo [here](https://github.com/raydelvecchio/vdb-benchmark).
 
+# Usage Example
+```python
+from vlite2 import VLite2
+
+vdb = VLite2(vdb_name = "Example")
+
+texts = ["Hello there", "Obi Wan Kenobi", "I've been expecting you"]
+
+for text in texts:
+  vdb.memorize(text)
+
+results = vdb.remember("star wars")
+```
+
 # Implemented V2 Improvements
 
 I had been using this for a few projects and found I had some more use cases not in the original. New features are
