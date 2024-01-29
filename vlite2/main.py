@@ -45,7 +45,7 @@ class VLite2:
         """
         if not isinstance(text, str):
             raise TypeError("The 'text' argument must be a string.")
-        if not isinstance(metadata, dict):
+        if metadata and not isinstance(metadata, dict):
             raise TypeError("The 'metadata' argument must be a dict.")
 
         chunks = chop_and_chunk(text, max_seq_length=max_seq_length)

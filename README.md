@@ -29,6 +29,7 @@ search key-value database
 * Significantly less dependencies, and thus reduced install time
 * Can now set max sequence length for chunking for each independent memorize operation; great for more varied data
 across a given database
+* Important input types are now enforced
 * When chunking, removed default newline split return; the db will now chunk ANY text, even if it already contains
 some newlines (\n) within it
 * **Naive implementation of Weaviate's [autocut](https://weaviate.io/developers/weaviate/search/hybrid#limiting-results-with-autocut-and-auto_limit)!** In the 
@@ -45,6 +46,9 @@ some newlines (\n) within it
 
 # Notes
 * Do not change the internal variables; many of those are used to track indexing between the `.index` and `.info` files, so unexpected behavior may arise
+* The input types for both `ingest` and `retrieve` are text
+  * Upon ingest, your text will be automatically chopped and chunked, embedded/vectorized, and saved to the database
+  * Upon retrieve, your text will be automatically embedded/vectorized, and results will be retrieved from the vector index
 
 # Pip Deploy
 1. Delete existing `dist` and `build`.
