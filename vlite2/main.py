@@ -123,16 +123,20 @@ class VLite2:
         """
         return self.__index_file
     
-    def get_metadata(self) -> dict:
+    def get_metadata(self, keys: list[int] = []) -> dict:
         """
         Returns the metadata. Metadata is structured as ID -> metdata.
         """
+        if keys:
+            return {key: self.__metadata[key] for key in keys if key in self.__metadata}
         return self.__metadata
 
-    def get_texts(self) -> dict:
+    def get_texts(self, keys: list[int] = []) -> dict:
         """
         Returns the texts. Text is structured as ID -> text.
         """
+        if keys:
+            return {key: self.self.__texts[key] for key in keys if key in self.__texts}
         return self.__texts
     
     def get_vectors(self, keys: list[int] = []) -> dict[int, np.ndarray]:
