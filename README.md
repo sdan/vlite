@@ -42,6 +42,9 @@ some newlines (\n) within it
   * USearch handles search, vector computation, and indexing natively as the fastest vector search engine in the world!
   * Documentation for using USearch found [here](https://unum-cloud.github.io/usearch/python/reference.html)!
 
+# Notes
+* Do not change the internal variables; many of those are used to track indexing between the `.index` and `.info` files, so unexpected behavior may arise
+
 # Pip Deploy
 1. Delete existing `dist` and `build`.
 2. `python3 setup.py sdist bdist_wheel`

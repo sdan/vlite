@@ -134,7 +134,15 @@ class VLite2:
         Returns the texts. Text is structured as ID -> text.
         """
         return self.__texts
-        
+    
+    def get_vectors(self, keys: list[int] = []) -> dict[int, np.ndarray]:
+        """
+        Returns all the raw vectors from the index file itself. If you specify a key, it will only return the vector from that key.
+        If a key is not found, the corresponding vector will be an array of zeros. Return format is a dict of key -> vector.
+        """
+        target_keys = keys if keys else list(self.__texts.keys())
+        return {key: self.__index.get(key) for key in target_keys}
+
     def clear(self) -> str:
         """
         Clears the database of all entries.
