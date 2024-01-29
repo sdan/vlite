@@ -41,6 +41,7 @@ some newlines (\n) within it
 * Integration with [USearch](https://github.com/unum-cloud/usearch) as the vector search engine instead of custom numpy comparisons
   * USearch handles search, vector computation, and indexing natively as the fastest vector search engine in the world!
   * Documentation for using USearch found [here](https://unum-cloud.github.io/usearch/python/reference.html)!
+* Exposed methods to retrieve texts, metadata, vectors, metadata / index filenames, calculate length, and cast to string
 
 # Notes
 * Do not change the internal variables; many of those are used to track indexing between the `.index` and `.info` files, so unexpected behavior may arise
