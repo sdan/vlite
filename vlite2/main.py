@@ -11,7 +11,7 @@ class VLite2:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             vdb_name = f"vlite2_{current_datetime}"
         else:
-            vdb_name = vdb_name.replace(".info", "").replace(".index", "")  # filename cannot include one of these to limit errors
+            vdb_name = os.path.splitext(vdb_name)[0]  # remove file extension; don't want this on the vdb name
 
         self.name = vdb_name
         self.__metadata_file = f"{vdb_name}.info"
