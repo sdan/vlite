@@ -13,9 +13,9 @@ vdb = VLite2(vdb_name = "Example")
 texts = ["Hello there", "Obi Wan Kenobi", "I've been expecting you"]
 
 for text in texts:
-  vdb.memorize(text)
+  vdb.ingest(text)
 
-results = vdb.remember("star wars")
+results = vdb.retrieve("star wars")
 ```
 
 # Implemented V2 Improvements
@@ -23,7 +23,7 @@ results = vdb.remember("star wars")
 I had been using this for a few projects and found I had some more use cases not in the original. New features are
 as follows:
 
-* VLite now allows you to remember metadata associated with topk texts, allowing it to be used as a semantic 
+* VLite now allows you to retrieve metadata associated with topk texts, allowing it to be used as a semantic 
 search key-value database
 * All important internal variables are private for enhanced safety and security; only device is left exposed since that can be changed on use case
 * Significantly less dependencies, and thus reduced install time, since benchmarking and testing found [elsewhere](https://github.com/raydelvecchio/vdb-benchmark).
@@ -32,7 +32,7 @@ across a given database
 * When chunking, removed default newline split return; the db will now chunk ANY text, even if it already contains
 some newlines (\n) within it
 * **Naive implementation of Weaviate's [autocut](https://weaviate.io/developers/weaviate/search/hybrid#limiting-results-with-autocut-and-auto_limit)!** In the 
-`remember` function, we no longer need to set K, rather, clusters of results are returned with each other.
+`retrieve` function, we no longer need to set K, rather, clusters of results are returned with each other.
   * I implement this by first finding the differences in similarity between the top X (hyperparameter) scores, calculating
   the standard deviation, then clustering by differences LARGER than the standard deviation. Results are returned
   then based on the number of CLUSTERS you want to reference, rather than direct elements.

@@ -13,6 +13,7 @@ class VLite2:
         else:
             vdb_name = vdb_name.replace(".info", "").replace(".index", "")  # filename cannot include one of these to limit errors
 
+        self.name = vdb_name
         self.__metadata_file = f"{vdb_name}.info"
         self.__index_file = f"{vdb_name}.index"
 
@@ -38,9 +39,9 @@ class VLite2:
             self.__chunk_id = 0
             self.__document_id = 0
 
-    def memorize(self, text: str, max_seq_length: int = 512, metadata: dict = None) -> int:
+    def ingest(self, text: str, max_seq_length: int = 512, metadata: dict = None) -> int:
         """
-        Memorizes the input text and returns the DOCUMENT ID (not chunk ID) associated with it in the database.
+        Ingests the input text and returns the DOCUMENT ID (not chunk ID) associated with it in the database.
         """
         chunks = chop_and_chunk(text, max_seq_length=max_seq_length)
         encoded_chunks = self.__embed_model.embed(texts=chunks, device=self.device)  # this is a numpy array, where each row is the vector for each chunk in chunks
@@ -59,9 +60,9 @@ class VLite2:
 
         return self.__document_id - 1
 
-    def remember(self, text: str = None, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> dict:
+    def retrieve(self, text: str = None, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> dict:
         """
-        Method to remember vectors given text. Will always return the text, and can specify what else
+        Method to retrieve vectors given text. Will always return the text, and can specify what else
         we want to return with the get_THING flag. If we set autocut=True, top_k will function as the number of
         CLUSTERS to return, not results. autocut_amount is how many items we run the autocut algorithm over.
         """
@@ -124,16 +125,16 @@ class VLite2:
     
     def get_metadata(self) -> dict:
         """
-        Returns the metadata.
+        Returns the metadata. Metadata is structured as ID -> metdata.
         """
         return self.__metadata
 
     def get_texts(self) -> dict:
         """
-        Returns the texts.
+        Returns the texts. Text is structured as ID -> text.
         """
         return self.__texts
-    
+        
     def clear(self) -> str:
         """
         Clears the database of all entries.
@@ -143,3 +144,16 @@ class VLite2:
         self.__metadata = {}
         self.__chunk_id = 0
         self.__document_id = 0
+
+    def __len__(self) -> int:
+        """
+        Returns the total number of documents (and thus, vectors) in the database.
+        """
+        return len(self.__texts)
+    
+    def __str__(self) -> str:
+        """
+        Casts the vdb object to a string.
+        """
+        return f"VLite2(name={self.name}, length={len(self)}, index_file={self.__index_file}, metadata_file={self.__metadata_file})"
+    
