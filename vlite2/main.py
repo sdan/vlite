@@ -13,7 +13,7 @@ class VLite2:
         else:
             vdb_name = os.path.splitext(vdb_name)[0]  # remove file extension; don't want this on the vdb name
 
-        self.name = vdb_name
+        self.__name = vdb_name
         self.__metadata_file = f"{vdb_name}.info"
         self.__index_file = f"{vdb_name}.index"
 
@@ -155,5 +155,5 @@ class VLite2:
         """
         Casts the vdb object to a string.
         """
-        return f"VLite2(name={self.name}, length={len(self)}, index_file={self.__index_file}, metadata_file={self.__metadata_file})"
+        return f"VLite2(name={self.__name}, length={len(self)}, index_file={self.__index_file}, metadata_file={self.__metadata_file})"
     

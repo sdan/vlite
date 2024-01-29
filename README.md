@@ -25,7 +25,7 @@ as follows:
 
 * VLite now allows you to retrieve metadata associated with topk texts, allowing it to be used as a semantic 
 search key-value database
-* All important internal variables are private for enhanced safety and security; only device is left exposed since that can be changed on use case
+* All important internal variables are mangled for enhanced safety and security; only device is left exposed since that can be changed on use case
 * Significantly less dependencies, and thus reduced install time, since benchmarking and testing found [elsewhere](https://github.com/raydelvecchio/vdb-benchmark).
 * Can now set max sequence length for chunking for each independent memorize operation; great for more varied data
 across a given database
