@@ -43,6 +43,11 @@ class VLite2:
         """
         Ingests the input text and returns the DOCUMENT ID (not chunk ID) associated with it in the database.
         """
+        if not isinstance(text, str):
+            raise TypeError("The 'text' argument must be a string.")
+        if not isinstance(metadata, dict):
+            raise TypeError("The 'metadata' argument must be a dict.")
+
         chunks = chop_and_chunk(text, max_seq_length=max_seq_length)
         encoded_chunks = self.__embed_model.embed(texts=chunks, device=self.device)  # this is a numpy array, where each row is the vector for each chunk in chunks
         
@@ -60,14 +65,14 @@ class VLite2:
 
         return self.__document_id - 1
 
-    def retrieve(self, text: str = None, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> dict:
+    def retrieve(self, text: str, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> dict:
         """
         Method to retrieve vectors given text. Will always return the text, and can specify what else
         we want to return with the get_THING flag. If we set autocut=True, top_k will function as the number of
         CLUSTERS to return, not results. autocut_amount is how many items we run the autocut algorithm over.
         """
-        if not text:
-            raise Exception("Please input some text to retrieve from.")
+        if not isinstance(text, str):
+            raise TypeError("The 'text' argument must be a string.")
         if top_k <= 0:
             raise Exception("Please input k >= 1.")
 

@@ -1,8 +1,8 @@
-# VLite V2
+# VLite V2 (VLite2)
 
 V2 is a collection and implementation of improvements upon the original amazing [VLite](https://github.com/sdan/vlite). Blazing fast and with even more features.
 All written in < 200 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/). You can find benchmarking
-code at this repo [here](https://github.com/raydelvecchio/vdb-benchmark).
+code comparing VLite2 to other vector databases at this repo [here](https://github.com/raydelvecchio/vdb-benchmark).
 
 # Usage Example
 ```python
@@ -26,7 +26,7 @@ as follows:
 * VLite now allows you to retrieve metadata associated with topk texts, allowing it to be used as a semantic 
 search key-value database
 * All important internal variables are mangled for enhanced safety and security; only device is left exposed since that can be changed on use case
-* Significantly less dependencies, and thus reduced install time, since benchmarking and testing found [elsewhere](https://github.com/raydelvecchio/vdb-benchmark).
+* Significantly less dependencies, and thus reduced install time
 * Can now set max sequence length for chunking for each independent memorize operation; great for more varied data
 across a given database
 * When chunking, removed default newline split return; the db will now chunk ANY text, even if it already contains
