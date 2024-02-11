@@ -44,6 +44,9 @@ some newlines (\n) within it
   * Documentation for using USearch found [here](https://unum-cloud.github.io/usearch/python/reference.html)!
 * Exposed methods to retrieve texts, metadata, vectors, metadata / index filenames, calculate length, and cast to string
 
+# Documentation
+Does not exist yet. Please refer to [main.py](vlite2/main.py) to see how to use each method and parameters.
+
 # Notes
 * Do not change the internal variables; many of those are used to track indexing between the `.index` and `.info` files, so unexpected behavior may arise
 * The input types for both `ingest` and `retrieve` are text
