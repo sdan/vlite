@@ -82,7 +82,7 @@ class VLite2:
         matches = matches.to_list()
 
         indices = [match[0] for match in matches]  # indices of the top matches used to retrieve the text and metadata
-        scores = [match[1] for match in matches]  # cosine similarity scores in order of descending similarity (ascending value)
+        scores = [match[1] for match in matches]  # cosine similarity scores in order of descending similarity (ascending value when returned by usearch)
 
         if autocut:
             sim_diff = np.diff(scores)
@@ -105,6 +105,7 @@ class VLite2:
             metadata: list = [self.__metadata[idx] for idx in indices]
             results["metadata"] = metadata
         if get_similarities:
+            scores = [1 - score for score in scores]  # cosine similarity in order of descending similarity (descending value, 1 = perfect match)
             results["scores"] = scores
         return results
 
@@ -173,4 +174,4 @@ class VLite2:
         Casts the vdb object to a string.
         """
         return f"VLite2(name={self.__name}, length={len(self)}, index_file={self.__index_file}, metadata_file={self.__metadata_file})"
-    
+ 
