@@ -6,7 +6,7 @@ import datetime
 import os
 
 class VLite2:
-    def __init__(self, vdb_name: str = None, device: str ='mps', model=None):
+    def __init__(self, vdb_name: str = None, device: str ='mps', embedding_model: str = 'all-MiniLM-L6-v2'):
         if vdb_name is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             vdb_name = f"vlite2_{current_datetime}"
@@ -22,8 +22,8 @@ class VLite2:
         if metadata_exists != index_exists:
             raise Exception("Must have BOTH .info and .index file present. Cannot continue unless neither or both files exist.")
 
-        self.device = device  # keep this exposed; may want to change device
-        self.__embed_model = model if model else EmbeddingModel()
+        self.device = device
+        self.__embed_model = EmbeddingModel(model_name=embedding_model)
 
         self.__index: Index = Index(ndim=self.__embed_model.dimension, metric='cos', path=self.__index_file)  # existence handled within USearch Index Object
 

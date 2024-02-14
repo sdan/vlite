@@ -1,7 +1,7 @@
 # VLite V2 (VLite2)
 
 V2 is a collection and implementation of improvements upon the original amazing [VLite](https://github.com/sdan/vlite). Blazing fast and with even more features.
-All written in < 200 lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/). You can find benchmarking
+All written in a few hundred lines of Python! Download via `pip install vlite2`. PyPi project found [here](https://pypi.org/project/vlite2/). You can find benchmarking
 code comparing VLite2 to other vector databases at this repo [here](https://github.com/raydelvecchio/vdb-benchmark).
 
 # Usage Example
@@ -30,6 +30,7 @@ search key-value database
 * Can now set max sequence length for chunking for each independent memorize operation; great for more varied data
 across a given database
 * Important input types are now enforced
+* Can now define your own embedding model with a string in the `sentence_transformers` library to use internally
 * When chunking, removed default newline split return; the db will now chunk ANY text, even if it already contains
 some newlines (\n) within it
 * **Naive implementation of Weaviate's [autocut](https://weaviate.io/developers/weaviate/search/hybrid#limiting-results-with-autocut-and-auto_limit)!** In the 
