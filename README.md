@@ -33,6 +33,9 @@ across a given database
 * Can now define your own embedding model with a string in the `sentence_transformers` library to use internally
 * When chunking, removed default newline split return; the db will now chunk ANY text, even if it already contains
 some newlines (\n) within it
+* Added **Ingestors** class in `vlite2/ingestors`!
+  * Allows you to process strings, dicts, .txt, .pdf, and .docx files into your VLite2 database!
+  * import with `from vlite2 import Ingestor` to get started
 * **Naive implementation of Weaviate's [autocut](https://weaviate.io/developers/weaviate/search/hybrid#limiting-results-with-autocut-and-auto_limit)!** In the 
 `retrieve` function, we no longer need to set K, rather, clusters of results are returned with each other.
   * I implement this by first finding the differences in similarity between the top X (hyperparameter) scores, calculating
