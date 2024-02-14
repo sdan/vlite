@@ -16,5 +16,7 @@ setup(
         'transformers',
         'uuid',
         'usearch',
+        'PyPDF2',
+        'docx2txt',
     ],
 )

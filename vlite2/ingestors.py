@@ -1,6 +1,7 @@
 import os
-from main import VLite2
+from .main import VLite2
 import yaml
+import re
 import PyPDF2
 import docx2txt
 
@@ -10,6 +11,12 @@ class Ingestor:
         Accept vlite2 instance as the constructor.
         """
         self.vlite2 = vlite2
+
+    def __replaceNewlines(self, text: str) -> str:
+        """
+        Replace any sequence of 3 or more "\n" with just "\n\n" for splitting purposes.
+        """
+        return re.sub(r'\n{3,}', '\n\n', text)
     
     def processString(self, data: str, chunk_size: int = 128, source: str = 'string', verbose: bool = False):
         """
@@ -62,7 +69,7 @@ class Ingestor:
 
     def processTXT(self, filename: str, chunk_size: int = 128, verbose: bool = False):
         """
-        Given a txt file, ingest the data in it. Each entry denoted by the text file split on two newlines (snippet). chunked to 128 characters by default.
+        Given a txt file, ingest the data in it. Each entry denoted by the text file split on two newlines. chunked to 128 characters by default.
         """
         if not filename.endswith('.txt'):
             raise ValueError("The file must be a txt")
@@ -74,9 +81,9 @@ class Ingestor:
 
         self.processString(data, chunk_size, source=filename, verbose=verbose)
 
-    def processDict(self, data: dict, dbname: str, chunk_size: int = 128, verbose: bool = False):
+    def processDict(self, data: dict, chunk_size: int = 128, verbose: bool = False):
         """
-        Given an input dictionary entry (NOT a list of dicts), process the entire thing into our vector database.
+        Given an input dictionary entry (NOT a list of dicts), process the entire thing into our vector database. Save as a yaml since it's more LLM-efficient.
         """
 
         if verbose:
@@ -88,7 +95,7 @@ class Ingestor:
 
     def processDocx(self, filename: str, chunk_size: int = 128, verbose: bool = False):
         """
-        Given an input word document, process it into the vector database. Save all images into their own directory within data.
+        Given an input word document, process it into the vector database. Save all images in the word doc to their own directory.
         """
         if not filename.endswith('.docx'):
             raise ValueError("The file must be a .docx")
@@ -103,4 +110,3 @@ class Ingestor:
         text = docx2txt.process(filename, image_path)
 
         self.processString(text, chunk_size, source=filename, verbose=verbose)
-        

@@ -1,4 +1,5 @@
 import os
+import glob
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 import unittest
@@ -47,5 +48,13 @@ class TestVLite(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(exit=False)
+
+    files_to_delete = glob.glob('*.index') + glob.glob('*.info')
+    for file_path in files_to_delete:
+        try:
+            os.remove(file_path)
+            print(f"Cleaned {file_path}")
+        except OSError as e:
+            print(f"Error: {file_path} : {e.strerror}")
     
