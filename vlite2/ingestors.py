@@ -103,3 +103,4 @@ class Ingestor:
         text = docx2txt.process(filename, image_path)
 
         self.processString(text, chunk_size, source=filename, verbose=verbose)
+        

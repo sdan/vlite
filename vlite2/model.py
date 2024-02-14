@@ -13,7 +13,7 @@ class EmbeddingModel:
     EmbeddingModel runs a transformer model and returns the embedding for a given text.
     '''
     def __init__(self, model_name='all-MiniLM-L6-v2'):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(f"sentence-transformers/{model_name}", use_fast=True)
 
         self.model = AutoModel.from_pretrained(f"sentence-transformers/{model_name}")
         self.dimension = self.model.embeddings.position_embeddings.embedding_dim
