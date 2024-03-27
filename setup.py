@@ -9,10 +9,13 @@ setup(
     packages=find_packages(),
     install_requires=[
         'numpy',
-        'pysbd',
-        'PyPDF2',
-        'transformers',
+        'Requests',
+        'setuptools',
         'torch',
-        'uuid'
+        'transformers',
+        'uuid',
+        'usearch',
+        'PyPDF2',
+        'docx2txt',
     ],
 )
