@@ -15,9 +15,8 @@ class EmbeddingModel:
     '''
     EmbeddingModel runs a transformer model and returns the embedding for a given text.
     '''
-    def __init__(self, model_name='sentence-transformers/all-MiniLM-L6-v2'):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True) # use_fast=True
-
+    def __init__(self, model_name='mxbai-colbert-large-v1'):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
         self.model = AutoModel.from_pretrained(model_name)
         self.dimension = self.model.embeddings.position_embeddings.embedding_dim
         self.max_seq_length = self.model.embeddings.position_embeddings.num_embeddings
@@ -33,7 +32,6 @@ class EmbeddingModel:
             print("MPS is available")
             dev = torch.device("mps")
         else:
-            print("MPS is not available")
             dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         device = torch.device(dev)  # Create a torch.device object
