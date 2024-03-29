@@ -6,31 +6,14 @@ import datetime
 import os
 from typing import List, Literal, Tuple, Dict, Optional, Union
 import logging
+from vlite.utils import process_string, process_pdf, process_txt, chop_and_chunk
 
 import math
 import time
 
 logger = logging.getLogger(__name__)
 
-def chop_and_chunk(text: str, max_seq_length: int = 512) -> List[str]:
-    words = text.split()
-    chunks = []
-    current_chunk = []
-
-    for word in words:
-        if len(" ".join(current_chunk + [word])) <= max_seq_length:
-            current_chunk.append(word)
-        else:
-            chunks.append(" ".join(current_chunk))
-            current_chunk = [word]
-
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-
-    return chunks
-
 class VLite:
-    __version__ = '1.1.1'
     def __init__(self, vdb_name: str = None, device: str = 'cpu', embedding_model: str = 'mixedbread-ai/mxbai-embed-large-v1'):
         vdb_name = vdb_name if vdb_name is not None else f"vlite_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         vdb_name = os.path.splitext(vdb_name)[0] if vdb_name is not None else vdb_name
@@ -42,16 +25,13 @@ class VLite:
         metadata_exists = os.path.exists(self.__metadata_file)
         index_exists = os.path.exists(self.__index_file)
         
-        print(f"Metadata file located at: {self.__metadata_file}")
-        print(f"Index file located at: {self.__index_file}")
-        print(f"VDB name: {self.__name}")
         if metadata_exists != index_exists:
             raise Exception("Must have BOTH .info and .index file present. Cannot continue unless neither or both files exist.")
 
         self.device = device
         self.__embed_model = SentenceTransformer(embedding_model, device=self.device)
 
-        self.__index: Index = Index(ndim=1024, metric='hamming', dtype='i8', path=self.__index_file)  # existence handled within USearch Index Object
+        self.__index: Index = Index(ndim=1024, metric='cos', dtype='f32', path=self.__index_file)
 
         if metadata_exists:
             with np.load(self.__metadata_file, allow_pickle=True) as data:
