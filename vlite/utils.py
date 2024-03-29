@@ -10,10 +10,10 @@ from typing import List, Union
 from transformers import AutoTokenizer, AutoModel
 
 class Retrieval:
-    def __init__(self, model_name='sentence-transformers/all-MiniLM-L6-v2', vlite2=None):
+    def __init__(self, model_name='sentence-transformers/all-MiniLM-L6-v2', vlite=None):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
         self.model = AutoModel.from_pretrained(model_name)
-        self.vlite2 = vlite2
+        self.vlite = vlite
 
     def __replaceNewlines(self, text: str) -> str:
         return re.sub(r'\n{3,}', '\n\n', text)
@@ -82,7 +82,7 @@ class Retrieval:
         for i, info in enumerate(snippets):
             if verbose:
                 print(f"\n{'-' * 10}PROCESSING SNIPPET {i + 1}{'-' * 10}\n")
-            self.vlite2.ingest(text=info, metadata={"location": f"{source} snippet {i + 1}", "content": info}, max_seq_length=chunk_size)
+            self.vlite.ingest(text=info, metadata={"location": f"{source} snippet {i + 1}", "content": info}, max_seq_length=chunk_size)
         if verbose:
             print(f"\n\n{'-' * 10}FINISHED PROCESSING TEXT: {source}{'-' * 10}\n\n")
     
@@ -102,7 +102,7 @@ class Retrieval:
                 page = pdf_reader.pages[page_num]
                 text = page.extract_text()
                 text = self.__replaceNewlines(text)
-                self.vlite2.ingest(text=text, metadata={"location": f"{filename} page {page_num + 1}", "content": text}, max_seq_length=chunk_size)
+                self.vlite.ingest(text=text, metadata={"location": f"{filename} page {page_num + 1}", "content": text}, max_seq_length=chunk_size)
         if verbose:
             print(f"\n\n{'-' * 10}FINISHED PROCESSING PDF: {filename}{'-' * 10}\n\n")
 
@@ -121,7 +121,7 @@ class Retrieval:
         if verbose:
             print(f"\n\n{'-' * 10}STARTED PROCESSING DICTIONARY OBJECT{'-' * 10}")
         data_yaml = str(yaml.dump(data))
-        self.vlite2.ingest(text=data_yaml, metadata={"location": f"dictionary object with keys {list(data.keys())}", "content": data}, max_seq_length=chunk_size)
+        self.vlite.ingest(text=data_yaml, metadata={"location": f"dictionary object with keys {list(data.keys())}", "content": data}, max_seq_length=chunk_size)
         if verbose:
             print(f"{'-' * 10}FINISHED PROCESSING DICTIONARY OBJECT{'-' * 10}\n\n")
 
@@ -151,3 +151,11 @@ def visualize_tokens(token_values: List[str]) -> None:
     )
     interleaved = itertools.chain.from_iterable(zip(backgrounds, token_values))
     print(("".join(interleaved) + "\u001b[0m"))
+
+def load_file(pdf_path):
+    extracted_text = []
+    with open(pdf_path, "rb") as file:
+        reader = PyPDF2.PdfReader(file)
+        for page in iter(reader.pages):
+            extracted_text.append(page.extract_text())  
+    return extracted_text

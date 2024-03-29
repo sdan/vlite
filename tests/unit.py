@@ -1,13 +1,13 @@
 import unittest
 import numpy as np
-from main import VLite
+from vlite.main import VLite
 import os
-from utils import load_file
+from vlite.utils import Retrieval
 import cProfile
 from pstats import Stats
 import matplotlib.pyplot as plt
 
-
+print("heres where it is",vlite.main.__file__)
 
 class TestVLite(unittest.TestCase):
     def setUp(self):
@@ -28,8 +28,8 @@ class TestVLite(unittest.TestCase):
             "How does the GPT-4 handle tokenization?",
             "What are the novel contributions of the GPT-4 model?"
         ]
-        self.corpus = load_file('test-data/gpt-4.pdf')
-
+        self.retriever = Retrieval()
+        self.corpus = self.retriever.processPDF('test-data/gpt-4.pdf')
         self.vlite = VLite()
 
     def tearDown(self):
