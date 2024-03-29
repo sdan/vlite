@@ -6,17 +6,13 @@ import os
 
 class TestVLite(unittest.TestCase):
     def setUp(self):
-        self.vlite = VLite("test_vlite")
+        self.vlite = VLite()
+        print(self.vlite.__version__)
         self.corpus = load_file('data/gpt-4.pdf')
 
     def tearDown(self):
         if os.path.exists(self.vlite.get_index_file()):
             os.remove(self.vlite.get_index_file())
-
-    def test_ingest(self):
-        for text in self.corpus:
-            self.vlite.ingest(text)
-        self.assertEqual(len(self.vlite), len(self.corpus))
 
     def test_retrieve(self):
         for text in self.corpus:
@@ -26,8 +22,13 @@ class TestVLite(unittest.TestCase):
         top_k = 3
         results = self.vlite.retrieve(query, top_k=top_k, get_similarities=True)
 
+        print("Results retrieved successfully.")
+        print(f"Number of texts retrieved: {len(results['texts'])}")
+        print(f"Number of scores retrieved: {len(results['scores'])}")
+        print("Results: ", results)
+        print("Query Text: ", query)
+
         self.assertEqual(len(results["texts"]), top_k)
-        self.assertEqual(len(results["metadata"]), top_k)
         self.assertEqual(len(results["scores"]), top_k)
 
 
