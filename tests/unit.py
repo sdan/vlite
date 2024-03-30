@@ -2,12 +2,10 @@ import unittest
 import numpy as np
 from vlite.main import VLite
 import os
-from vlite.utils import Retrieval
+from vlite.utils import process_pdf
 import cProfile
 from pstats import Stats
 import matplotlib.pyplot as plt
-
-print("heres where it is",vlite.main.__file__)
 
 class TestVLite(unittest.TestCase):
     def setUp(self):
@@ -28,38 +26,30 @@ class TestVLite(unittest.TestCase):
             "How does the GPT-4 handle tokenization?",
             "What are the novel contributions of the GPT-4 model?"
         ]
-        self.retriever = Retrieval()
-        self.corpus = self.retriever.processPDF('test-data/gpt-4.pdf')
-        self.vlite = VLite()
+        self.corpus = process_pdf('data/gpt-4.pdf')
+        self.vlite = VLite("vlite-unit")
 
     def tearDown(self):
         # remove the file
-        if os.path.exists('vlite.pkl'):
-            print("[+] Removing vlite.pkl")
-            os.remove('vlite.pkl')
+        if os.path.exists('vlite-unit.npz'):
+            print("[+] Removing vlite.npz")
+            os.remove('vlite.npz')
 
-    def test_add_vector(self):
+    def test_add(self):
         with cProfile.Profile() as pr:
-            self.vlite.add_vector(np.random.rand(384, 384))
+            print("[+] Adding text to the collection...")
+            # print("Corpus printed below:")
+            # print(self.corpus)  
+            # corpus is a list of dictionaries and add expects a dictionary with keys 'text', 'id', and 'metadata'
+            for doc in self.corpus:
+                self.vlite.add(doc)
         stats = Stats(pr)
         stats.strip_dirs().sort_stats("time").print_stats()
 
-    def test_get_similar_vectors(self):
-        with cProfile.Profile() as pr:
-            indices, sims = self.vlite.get_similar_vectors(np.random.rand(1, 384))
-        stats = Stats(pr)
-        stats.strip_dirs().sort_stats("time").print_stats()
-
-    def test_memorize(self):
-        with cProfile.Profile() as pr:
-            self.vlite.memorize(self.corpus)
-        stats = Stats(pr)
-        stats.strip_dirs().sort_stats("time").print_stats()
-
-    def test_remember(self):
+    def test_retrieve(self):
         with cProfile.Profile() as pr:
             for query in self.queries:
-                _, top_sims = self.vlite.remember(query)
+                _, top_sims = self.vlite.retrieve(query)
         stats = Stats(pr)
         stats.strip_dirs().sort_stats("time").print_stats()
 

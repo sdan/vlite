@@ -8,60 +8,33 @@ import pysbd
 import itertools
 from typing import List, Union
 from transformers import AutoTokenizer, AutoModel
-
-
-
-def __replaceNewlines(text: str) -> str:
-    return re.sub(r'\n{3,}', '\n\n', text)
-
-def chop_and_chunk(text, max_seq_length=256):
+import tiktoken
+import uuid
+def chop_and_chunk(text, max_seq_length=512):
     if isinstance(text, str):
         text = [text]
-    
-    if all('\n' in t for t in text):
-        return text
-    
+
+    enc = tiktoken.get_encoding("cl100k_base")
     chunks = []
+
     for t in text:
-        parts = re.split('\n+', t)
-        for p in parts:
-            tokens = p.split()
-            chunk = ''
-            count = 0
-            for t in tokens:
-                if count + len(t) < max_seq_length:
-                    count += len(t)
-                    chunk += t + ' '
-                else:
-                    chunks.append(chunk.strip())
-                    count = 0
-                    chunk = ''
-            if chunk != '':
-                chunks.append(chunk.strip())
+        token_ids = enc.encode(t, disallowed_special=())
+        start_idx = 0
+        while start_idx < len(token_ids):
+            end_idx = min(start_idx + max_seq_length, len(token_ids))
+            chunk = enc.decode(token_ids[start_idx:end_idx])
+            chunks.append(chunk)
+            start_idx = end_idx
+
     return chunks
 
-def token_count(texts, tokenizer):
-    tokens = 0
-    for text in texts:
-        tokens += len(tokenizer.tokenize(text, padding=True, truncation=True))
-    return tokens
+def replace_newlines(text: str) -> str:
+        """
+        Replace any sequence of 3 or more "\n" with just "\n\n" for splitting purposes.
+        """
+        return re.sub(r'\n{3,}', '\n\n', text)
 
-def process_and_ingest(data: Union[str, dict], chunk_size: int = 128, source: str = 'string', verbose: bool = False):
-    if isinstance(data, dict):
-        return process_dict(data, chunk_size, verbose)
-    elif isinstance(data, str):
-        if data.endswith('.pdf'):
-            return process_pdf(data, chunk_size, verbose)
-        elif data.endswith('.txt'):
-            return process_txt(data, chunk_size, verbose)
-        elif data.endswith('.docx'):
-            return process_docx(data, chunk_size, verbose)
-        else:
-            return process_string(data, chunk_size, source, verbose)
-    else:
-        raise ValueError("Unsupported data type. Please provide a string, dictionary, or a supported file path.")
-
-def process_string(data: str, chunk_size: int = 128, source: str = 'string', verbose: bool = False):
+def process_string(data: str, chunk_size: int = 512, source: str = 'string', verbose: bool = False):
     snippets = replace_newlines(data).split("\n\n")
     merged_snippets = []
     previous_snippet = ""
@@ -101,9 +74,14 @@ def process_pdf(filename: str, chunk_size: int = 128, verbose: bool = False):
             page = pdf_reader.pages[page_num]
             text = page.extract_text()
             text = replace_newlines(text)
-            processed_pages.append({"text": text, "metadata": {"location": f"{filename} page {page_num + 1}", "content": text}})
+            processed_pages.append({"id": str(uuid.uuid4()), "text": text, "metadata": {"location": f"{filename} page {page_num + 1}", "content": text}})
     if verbose:
         print(f"\n\n{'-' * 10}FINISHED PROCESSING PDF: {filename}{'-' * 10}\n\n")
+    
+    print(f"Type of result: {type(processed_pages)}")
+    # some samples of the processed pages
+    print(f"Sample of processed pages: {processed_pages[:2]}")
+    
     return processed_pages
 
 def process_txt(filename: str, chunk_size: int = 128, verbose: bool = False):

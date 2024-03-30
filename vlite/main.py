@@ -1,131 +1,156 @@
 import numpy as np
-from sentence_transformers import SentenceTransformer
-from usearch.index import Index, Matches
-from usearch.compiled import ScalarKind
+from uuid import uuid4
+from .model import EmbeddingModel
+from .utils import chop_and_chunk
 import datetime
-import os
-from typing import List, Literal, Tuple, Dict, Optional, Union
-import logging
-from vlite.utils import process_string, process_pdf, process_txt, chop_and_chunk
-
-import math
-import time
-
-logger = logging.getLogger(__name__)
 
 class VLite:
-    def __init__(self, vdb_name: str = None, device: str = 'cpu', embedding_model: str = 'mixedbread-ai/mxbai-embed-large-v1'):
-        vdb_name = vdb_name if vdb_name is not None else f"vlite_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        vdb_name = os.path.splitext(vdb_name)[0] if vdb_name is not None else vdb_name
+    """
+    A simple vector database for text embedding and retrieval.
 
-        self.__name = vdb_name
-        self.__metadata_file = f"{vdb_name}.info"
-        self.__index_file = f"{vdb_name}.index"
+    Attributes:
+        collection (str): Path to the collection file.
+        device (str): Device to use for embedding ('cpu' or 'cuda').
+        model (EmbeddingModel): The embedding model used for text representation.
 
-        metadata_exists = os.path.exists(self.__metadata_file)
-        index_exists = os.path.exists(self.__index_file)
-        
-        if metadata_exists != index_exists:
-            raise Exception("Must have BOTH .info and .index file present. Cannot continue unless neither or both files exist.")
-
+    Methods:
+        add(text, id=None, metadata=None): Adds a text to the collection with optional ID and metadata.
+        retrieve(text=None, id=None, top_k=5): Retrieves similar texts from the collection.
+        save(): Saves the collection to a file.
+    """
+    def __init__(self, collection=None, device='cpu', model_name='mixedbread-ai/mxbai-embed-large-v1'):
+        if collection is None:
+            current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            collection = f"vlite_{current_datetime}.npz"
+        self.collection = collection
         self.device = device
-        self.__embed_model = SentenceTransformer(embedding_model, device=self.device)
+        self.model = EmbeddingModel(model_name) if model_name else EmbeddingModel()
 
-        self.__index: Index = Index(ndim=1024, metric='cos', dtype='f32', path=self.__index_file)
+        # Load existing collection if available, otherwise initialize empty attributes
+        try:
+            with np.load(self.collection, allow_pickle=True) as data:
+                self.texts = data['texts'].tolist()
+                self.metadata = data['metadata'].tolist()
+                self.vectors = data['vectors']
+        except FileNotFoundError:
+            print(f"Collection file {self.collection} not found. Initializing empty attributes.")
+            self.texts = []  # List to store text chunks
+            self.metadata = {}  # Dictionary to store metadata
+            self.vectors = np.empty((0, self.model.dimension))  # Empty array to store embedding vectors
 
-        if metadata_exists:
-            with np.load(self.__metadata_file, allow_pickle=True) as data:
-                self.__texts = data['texts'].tolist()
-                self.__metadata = data['metadata'].tolist()
-                self.__chunk_id = int(data['chunk_id'])
-                self.__document_id = int(data['document_id'])
+    def add(self, text, id=None, metadata=None):
+        """
+        Adds text to the collection with optional ID and metadata.
+
+        Args:
+            text (str or dict): Text to be added. If a dictionary is provided,
+                it should contain the text, id, and metadata.
+            id (str, optional): Unique identifier for the text. Defaults to a UUID.
+            metadata (dict, optional): Metadata associated with the text.
+
+        Returns:
+            tuple: A tuple containing the ID of the added text and the updated vectors array.
+        """
+        print("Adding text to the collection...")
+
+        if isinstance(text, dict):
+            id = text.get('id', str(uuid4()))
+            text_content = text.get('text')
+            metadata = text.get('metadata', {})
         else:
-            self.__texts = {}
-            self.__metadata = {}
-            self.__chunk_id = 0
-            self.__document_id = 0
+            id = id or str(uuid4())
+            text_content = text
 
-    def ingest(self, text: str, max_seq_length: int = 512, metadata: dict = None) -> int:
-        """
-        Ingests the input text and returns the DOCUMENT ID (not chunk ID) associated with it in the database.
-        """
-        if not isinstance(text, str):
-            raise TypeError("The 'text' argument must be a string.")
-        if metadata and not isinstance(metadata, dict):
-            raise TypeError("The 'metadata' argument must be a dict.")
-
-        chunks = chop_and_chunk(text, max_seq_length=max_seq_length)
-        encoded_chunks = self.__embed_model.encode(chunks)
-        
-        keys = np.arange(self.__chunk_id, self.__chunk_id + len(chunks))
-        self.__index.add(keys=keys, vectors=encoded_chunks)  # if you pass in ndarray, ndarray for keys, vectors, it processes in a batch add matching key to row (see USearch docs)
+        chunks = chop_and_chunk(text_content)
+        encoded_data = self.model.embed(chunks, device=self.device)
+        self.vectors = np.vstack((self.vectors, encoded_data))
 
         for chunk in chunks:
-            self.__texts[self.__chunk_id] = chunk
-            self.__metadata[self.__chunk_id] = metadata or {}
-            self.__metadata[self.__chunk_id]['document_id'] = self.__document_id
-            self.__chunk_id += 1
+            self.texts.append(chunk)
+            idx = len(self.texts) - 1
+            self.metadata[idx] = metadata
+            self.metadata[idx]['index'] = id
 
-        self.__document_id += 1
         self.save()
+        print("Text added successfully.")
 
-        return self.__document_id - 1
+        return id, self.vectors
+
+    def retrieve(self, text=None, id=None, top_k=5):
+        """
+        Retrieves similar texts from the collection based on text content or ID.
+
+        Args:
+            text (str, optional): Query text for finding similar texts.
+            id (str, optional): ID of the text to retrieve.
+            top_k (int, optional): Number of top similar texts to retrieve. Defaults to 5.
+
+        Returns:
+            tuple: A tuple containing a list of similar texts and their similarity scores.
+        """
+        print("Retrieving similar texts...")
+        if id:
+            print(f"Retrieving text with ID: {id}")
+            return self.metadata[id]
+        if text:
+            print(f"Retrieving top {top_k} similar texts for query: {text}")
+            query_vector = self.model.embed([text], device=self.device)
+            similarities = np.dot(query_vector, self.vectors.T).flatten()
+            top_k_idx = np.argsort(similarities)[-top_k:][::-1]
+            print("Retrieval completed.")
+            return [self.texts[idx] for idx in top_k_idx], similarities[top_k_idx]
+
+    def delete(self, id):
+        """
+        Deletes a text from the collection by ID.
+        """
+        print(f"Deleting text with ID: {id}")
+        del self.texts[id]
+        del self.metadata[id]
+        self.vectors = np.delete(self.vectors, id, axis=0)
+        self.save()
     
-    def get_index_file(self) -> str:
-        return self.__index_file
+    def update(self, id, text, metadata=None):
+        """
+        Updates a text in the collection by ID.
+        """
+        print(f"Updating text with ID: {id}")
+        self.delete(id)
+        self.add(text, id, metadata)
+    
+    def get(self, ids=None, where=None):
+        """
+        Retrieves items from the collection based on IDs or metadata.
 
-    def get_metadata_file(self) -> str:
-        return self.__metadata_file
+        Args:
+            ids (list, optional): List of IDs to retrieve. If not provided, all items will be returned.
+            where (dict, optional): Metadata filter to apply. Items matching the filter will be returned.
+
+        Returns:
+            list: A list of retrieved items.
+        """
+        if ids is None:
+            ids = range(len(self.texts))
+
+        if where is None:
+            return [(self.texts[idx], self.metadata[idx]) for idx in ids if idx in self.metadata]
+        else:
+            return [(self.texts[idx], self.metadata[idx]) for idx in ids if idx in self.metadata and all(self.metadata[idx].get(k) == v for k, v in where.items())]
+            
+    def count(self):
+        """
+        Returns the number of items in the collection.
+
+        Returns:
+            int: The count of items in the collection.
+        """
+        return len(self.texts)
 
     def save(self):
-        with open(self.__metadata_file, 'wb') as f:
-            np.savez(f, texts=self.__texts, metadata=self.__metadata, chunk_id=self.__chunk_id, document_id=self.__document_id)
-        self.__index.save(path_or_buffer=self.__index_file)
-
-    def __len__(self) -> int:
-        return len(self.__texts)
-
-
-    def retrieve(self, text: str, top_k: int = 3, autocut: bool = False, autocut_amount: int = 25, get_metadata: bool = False, get_similarities: bool = False, progress: bool = False) -> dict:
         """
-        Method to retrieve vectors given text. Will always return the text, and can specify what else
-        we want to return with the get_THING flag. If we set autocut=True, top_k will function as the number of
-        CLUSTERS to return, not results. autocut_amount is how many items we run the autocut algorithm over.
+        Saves the current state of the collection to a file.
         """
-        if not isinstance(text, str):
-            raise TypeError("The 'text' argument must be a string.")
-        if top_k <= 0:
-            raise Exception("Please input k >= 1.")
-
-        count = autocut_amount if autocut else top_k  # sets the amount of elements we want to autocut over here
-
-        matches: Matches = self.__index.search(self.__embed_model.encode(text), count=count, log=progress)
-        matches = matches.to_list()
-
-        indices = [match[0] for match in matches]  # indices of the top matches used to retrieve the text and metadata
-        scores = [match[1] for match in matches]  # cosine similarity scores in order of descending similarity (ascending value when returned by usearch)
-
-        if autocut:
-            sim_diff = np.diff(scores)
-            std_dev = np.std(sim_diff)
-            cluster_idxs = np.where(sim_diff > std_dev)[0]  # indices marking the position of the END of each autocut cluster
-            k = min(top_k, len(cluster_idxs))  # ensures that only pull a MAX of top_k clusters (can have less if no other relevant clusters found)
-            if cluster_idxs.size > 0:
-                endpoint = cluster_idxs[k - 1] + 1  # gets indices of elements in top k CLUSTERS
-            else:
-                endpoint = k
-            indices = indices[0:endpoint]
-            scores = scores[0:endpoint]
-            texts: list = [self.__texts[idx] for idx in indices]
-
-        else:
-            texts: list = [self.__texts[idx] for idx in indices]
-
-        results = {"texts": texts}
-        if get_metadata:
-            metadata: list = [self.__metadata[idx] for idx in indices]
-            results["metadata"] = metadata
-        if get_similarities:
-            scores = [1 - score for score in scores]  # cosine similarity in order of descending similarity (descending value, 1 = perfect match)
-            results["scores"] = scores
-        return results
+        print(f"Saving collection to {self.collection}")
+        with open(self.collection, 'wb') as f:
+            np.savez(f, texts=self.texts, metadata=self.metadata, vectors=self.vectors)
+        print("Collection saved successfully.")

@@ -6,3 +6,4 @@ transformers==4.25.1
 search==2.9.2
 PyPDF2
 docx2txt
+surya-ocr
