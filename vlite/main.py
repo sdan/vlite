@@ -154,7 +154,31 @@ class VLite:
             return [(self.texts[idx], self.metadata[idx]) for idx in ids if idx in self.metadata]
         else:
             return [(self.texts[idx], self.metadata[idx]) for idx in ids if idx in self.metadata and all(self.metadata[idx].get(k) == v for k, v in where.items())]
-            
+
+
+    def set(self, id, text=None, metadata=None, vector=None):
+        """
+        Updates the attributes of an item in the collection by ID.
+
+        Args:
+            id (str): ID of the item to update.
+            text (str, optional): Updated text content of the item.
+            metadata (dict, optional): Updated metadata of the item.
+            vector (numpy.ndarray, optional): Updated embedding vector of the item.
+        """
+        print(f"Setting attributes for item with ID: {id}")
+        idx = next((i for i, x in enumerate(self.metadata) if x.get('index') == id), None)
+        if idx is not None:
+            if text is not None:
+                self.texts[idx] = text
+            if metadata is not None:
+                self.metadata[idx].update(metadata)
+            if vector is not None:
+                self.vectors[idx] = vector
+            self.save()
+        else:
+            print(f"Item with ID {id} not found.")
+
     def count(self):
         """
         Returns the number of items in the collection.
@@ -172,3 +196,24 @@ class VLite:
         with open(self.collection, 'wb') as f:
             np.savez(f, texts=self.texts, metadata=self.metadata, vectors=self.vectors)
         print("Collection saved successfully.")
+
+    def clear(self):
+        """
+        Clears the entire collection, removing all items and resetting the attributes.
+        """
+        print("Clearing the collection...")
+        self.texts = []
+        self.metadata = {}
+        self.vectors = np.empty((0, self.model.dimension))
+        self.save()
+        print("Collection cleared.")
+    
+    def info(self):
+        """
+        Prints information about the collection, including the number of items, collection file path,
+        and the embedding model used.
+        """
+        print("Collection Information:")
+        print(f"  Items: {self.count()}")
+        print(f"  Collection file: {self.collection}")
+        print(f"  Embedding model: {self.model}")
