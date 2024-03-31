@@ -4,7 +4,6 @@ import re
 import PyPDF2
 import docx2txt
 import numpy as np
-import pysbd
 import itertools
 from typing import List, Union
 from transformers import AutoTokenizer, AutoModel
