@@ -8,7 +8,7 @@ PyYAML==6.0.1
 Random_Word==1.0.11
 regex==2022.10.31
 Requests==2.31.0
-sentence_transformers.egg==info
+sentence_transformers==2.6.1
 setuptools==65.3.0
 tiktoken==0.4.0
 torch==2.3.0.dev20240103
