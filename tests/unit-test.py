@@ -41,15 +41,15 @@ class TestVLite(unittest.TestCase):
     def test_add(self):
         start_time = time.time()
         print("[+] Adding text to the collection...")
-        for doc in self.corpus:
-            self.vlite.add(doc)
+        self.vlite.add(self.corpus)
         end_time = time.time()
         TestVLite.test_times["add"] = end_time - start_time
 
     def test_retrieve(self):
         start_time = time.time()
         for query in self.queries:
-            _, top_sims = self.vlite.retrieve(query)
+            _, top_sims, _ = self.vlite.retrieve(query)  
+            print(f"Top similarities for query '{query}': {top_sims}")
         end_time = time.time()
         TestVLite.test_times["retrieve"] = end_time - start_time
 

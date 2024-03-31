@@ -38,55 +38,63 @@ class VLite:
             self.metadata = {}  # Dictionary to store metadata
             self.vectors = np.empty((0, self.model.dimension))  # Empty array to store embedding vectors
 
-    def add(self, text, id=None, metadata=None):
+
+    def add(self, data, metadata=None):
         """
-        Adds text to the collection with optional ID and metadata.
+        Adds text or a list of texts to the collection with optional ID and metadata.
 
         Args:
-            text (str or dict): Text to be added. If a dictionary is provided,
-                it should contain the text, id, and metadata.
-            id (str, optional): Unique identifier for the text. Defaults to a UUID.
-            metadata (dict, optional): Metadata associated with the text.
+            data (str, dict, or list): Text data to be added. Can be a string, a dictionary
+                containing text, id, and/or metadata, or a list of strings or dictionaries.
+            metadata (dict, optional): Additional metadata to be appended to each text entry.
 
         Returns:
-            tuple: A tuple containing the ID of the added text and the updated vectors array.
+            list: A list of tuples, each containing the ID of the added text and the updated vectors array.
         """
         print("Adding text to the collection...")
 
-        if isinstance(text, dict):
-            id = text.get('id', str(uuid4()))
-            text_content = text.get('text')
-            metadata = text.get('metadata', {})
-        else:
-            id = id or str(uuid4())
-            text_content = text
+        data = [data] if not isinstance(data, list) else data
 
-        chunks = chop_and_chunk(text_content)
-        encoded_data = self.model.embed(chunks, device=self.device)
-        self.vectors = np.vstack((self.vectors, encoded_data))
+        results = []
+        for item in data:
+            text_content, id, item_metadata = (
+                (item['text'], item.get('id', str(uuid4())), item.get('metadata', {}))
+                if isinstance(item, dict)
+                else (item, str(uuid4()), {})
+            )
 
-        for chunk in chunks:
-            self.texts.append(chunk)
-            idx = len(self.texts) - 1
-            self.metadata[idx] = metadata
-            self.metadata[idx]['index'] = id
+            item_metadata.update(metadata or {})
+
+            chunks = chop_and_chunk(text_content)
+            encoded_data = self.model.embed(chunks, device=self.device)
+            self.vectors = np.vstack((self.vectors, encoded_data))
+
+            update_metadata = lambda idx: {
+                **self.metadata.get(idx, {}),
+                **item_metadata,
+                'index': id
+            }
+            self.metadata.update({idx: update_metadata(idx) for idx in range(len(self.texts), len(self.texts) + len(chunks))})
+
+            self.texts.extend(chunks)
+            results.append((id, self.vectors))
 
         self.save()
         print("Text added successfully.")
+        return results
 
-        return id, self.vectors
-
-    def retrieve(self, text=None, id=None, top_k=5):
+    def retrieve(self, text=None, id=None, top_k=5, metadata=None):
         """
-        Retrieves similar texts from the collection based on text content or ID.
+        Retrieves similar texts from the collection based on text content, ID, or metadata.
 
         Args:
             text (str, optional): Query text for finding similar texts.
             id (str, optional): ID of the text to retrieve.
             top_k (int, optional): Number of top similar texts to retrieve. Defaults to 5.
+            metadata (dict, optional): Metadata to filter the retrieved texts.
 
         Returns:
-            tuple: A tuple containing a list of similar texts and their similarity scores.
+            tuple: A tuple containing a list of similar texts, their similarity scores, and metadata (if applicable).
         """
         print("Retrieving similar texts...")
         if id:
@@ -97,9 +105,19 @@ class VLite:
             query_vector = self.model.embed([text], device=self.device)
             similarities = np.dot(query_vector, self.vectors.T).flatten()
             top_k_idx = np.argsort(similarities)[-top_k:][::-1]
-            print("Retrieval completed.")
-            return [self.texts[idx] for idx in top_k_idx], similarities[top_k_idx]
 
+            # Filter by metadata if provided
+            if metadata:
+                filtered_indices = []
+                for idx in top_k_idx:
+                    item_metadata = self.metadata.get(idx, {})
+                    if all(item_metadata.get(key) == value for key, value in metadata.items()):
+                        filtered_indices.append(idx)
+                top_k_idx = filtered_indices
+
+            print("Retrieval completed.")
+            return [self.texts[idx] for idx in top_k_idx], [similarities[idx] for idx in top_k_idx], [self.metadata[idx] for idx in top_k_idx]
+            
     def delete(self, id):
         """
         Deletes a text from the collection by ID.
