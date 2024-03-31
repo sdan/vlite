@@ -20,5 +20,5 @@ jobs:
     - name: Run tests
       run: |
         echo "Starting tests..."
-        python ./tests/unit.py
+        c
         echo "Tests completed."

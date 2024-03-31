@@ -38,33 +38,33 @@ class VLite:
             self.metadata = {}  # Dictionary to store metadata
             self.vectors = np.empty((0, self.model.dimension))  # Empty array to store embedding vectors
 
-
-    def add(self, data, metadata=None):
+    def add(self, data, metadata=None, id=None):
         """
         Adds text or a list of texts to the collection with optional ID and metadata.
 
         Args:
-            data (str, dict, or list): Text data to be added. Can be a string, a dictionary
-                containing text, id, and/or metadata, or a list of strings or dictionaries.
+            data (str, dict, or list): Text data to be added. Can be a string, a dictionary containing text, id, and/or metadata, or a list of strings or dictionaries.
             metadata (dict, optional): Additional metadata to be appended to each text entry.
+            id (str, optional): Unique identifier for the text entry. If not provided, a UUID will be generated.
 
         Returns:
             list: A list of tuples, each containing the ID of the added text and the updated vectors array.
         """
         print("Adding text to the collection...")
-
         data = [data] if not isinstance(data, list) else data
-
         results = []
+
         for item in data:
-            text_content, id, item_metadata = (
-                (item['text'], item.get('id', str(uuid4())), item.get('metadata', {}))
-                if isinstance(item, dict)
-                else (item, str(uuid4()), {})
-            )
+            if isinstance(item, dict):
+                text_content = item['text']
+                item_id = item.get('id', str(uuid4()))
+                item_metadata = item.get('metadata', {})
+            else:
+                text_content = item
+                item_id = id or str(uuid4())
+                item_metadata = {}
 
             item_metadata.update(metadata or {})
-
             chunks = chop_and_chunk(text_content)
             encoded_data = self.model.embed(chunks, device=self.device)
             self.vectors = np.vstack((self.vectors, encoded_data))
@@ -72,12 +72,12 @@ class VLite:
             update_metadata = lambda idx: {
                 **self.metadata.get(idx, {}),
                 **item_metadata,
-                'index': id
+                'index': item_id
             }
-            self.metadata.update({idx: update_metadata(idx) for idx in range(len(self.texts), len(self.texts) + len(chunks))})
 
+            self.metadata.update({idx: update_metadata(idx) for idx in range(len(self.texts), len(self.texts) + len(chunks))})
             self.texts.extend(chunks)
-            results.append((id, self.vectors))
+            results.append((item_id, self.vectors))
 
         self.save()
         print("Text added successfully.")
@@ -134,7 +134,7 @@ class VLite:
         """
         print(f"Updating text with ID: {id}")
         self.delete(id)
-        self.add(text, id, metadata)
+        self.add(text, metadata=metadata, id=id)
     
     def get(self, ids=None, where=None):
         """

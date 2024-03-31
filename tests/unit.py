@@ -35,7 +35,7 @@ class TestVLite(unittest.TestCase):
         text_512tokens = "underreckoning fleckiness hairstane paradigmatic eligibility sublevate xviii achylia reremice flung outpurl questing gilia unosmotic unsuckled plecopterid excludable phenazine fricando unfledgedness spiritsome incircle desmogenous subclavate redbug semihoral district chrysocolla protocoled servius readings propolises javali dujan stickman attendee hambone obtusipennate tightropes monitorially signaletics diestrums preassigning spriggy yestermorning margaritic tankfuls aseptify linearity hilasmic twinning tokonoma seminormalness cerebrospinant refroid doghouse kochab dacryocystalgia saltbushes newcomer provoker berberid platycoria overpersuaded reoverflow constrainable headless forgivably syzygal purled reese polyglottonic decennary embronze pluripotent equivocally myoblasts thymelaeaceous confervae perverted preanticipate mammalogical desalinizing tackets misappearance subflexuose concludence effluviums runtish gras cuckolded hemostasia coatroom chelidon policizer trichinised frontstall impositions unta outrance scholium fibrochondritis furcates fleaweed housefront helipads hemachate snift appellativeness knobwood superinclination tsures haberdasheries unparliamented reexecution nontangential waddied desolated subdistinctively undiscernibleness swishiest dextral progs koprino bruisingly unloanably bardash uncuckoldedunderreckoning fleckiness hairstane paradigmatic eligibility sublevate xviii achylia reremice flung outpurl questing gilia unosmotic unsuckled plecopterid excludable phenazine fricando unfledgedness spiritsome incircle desmogenous subclavate redbug semihoral district chrysocolla spriggy yestermorning margaritic tankfuls aseptify linearity hilasmic twinning tokonoma seminormalness cerebrospinant refroequivocally myoblasts thymelaeaceous confervae perverted preantiest dextral progs koprino bruisingly unloanably bardash uncuckolded"
         metadata = {"source": "test_512tokens"}
         self.vlite.add(text_512tokens, metadata=metadata)
-        with open("data/text-8192tokens.txt", "r") as file:
+        with open(os.path.join(os.path.dirname(__file__), "data/text-8192tokens.txt"), "r") as file:
             text_8192tokens = file.read()
         metadata = {"source": "test_8192tokens"}
         self.vlite.add(text_8192tokens, metadata=metadata)
@@ -45,7 +45,7 @@ class TestVLite(unittest.TestCase):
     
     def test_add_pdf(self):
         start_time = time.time()
-        process_pdf('data/gpt-4.pdf')
+        process_pdf(os.path.join(os.path.dirname(__file__), 'data/gpt-4.pdf'))
         end_time = time.time()
         TestVLite.test_times["add_pdf"] = end_time - start_time
         # time to add 71067 tokens from the GPT-4 paper
@@ -69,9 +69,9 @@ class TestVLite(unittest.TestCase):
             "How does the GPT-4 handle tokenization?",
             "What are the novel contributions of the GPT-4 model?"
         ]
-        process_pdf('data/gpt-4.pdf')
+        process_pdf(os.path.join(os.path.dirname(__file__), 'data/gpt-4.pdf'))
         start_time = time.time()
-        for query in self.queries:
+        for query in queries:
             _, top_sims, _ = self.vlite.retrieve(query)  
             print(f"Top similarities for query '{query}': {top_sims}")
         end_time = time.time()
