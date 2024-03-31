@@ -3,7 +3,6 @@ Requests==2.31.0
 setuptools==65.3.0
 torch==1.13.1
 transformers==4.25.1
-search==2.9.2
 PyPDF2
 docx2txt
 surya-ocr
