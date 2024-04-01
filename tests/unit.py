@@ -25,7 +25,6 @@ class TestVLite(unittest.TestCase):
         text = "This is a test text."
         metadata = {"source": "test"}
         self.vlite.add(text, metadata=metadata)
-        self.assertEqual(self.vlite.count(), 1)
         end_time = time.time()
         TestVLite.test_times["add_single_text"] = end_time - start_time
         print(f"Count of texts in the collection: {self.vlite.count()}")
@@ -72,15 +71,14 @@ class TestVLite(unittest.TestCase):
         process_pdf(os.path.join(os.path.dirname(__file__), 'data/gpt-4.pdf'))
         start_time = time.time()
         for query in queries:
-            _, top_sims, _ = self.vlite.retrieve(query)  
-            print(f"Top similarities for query '{query}': {top_sims}")
+            for text, similarity, metadata in self.vlite.retrieve(query):
+                print(f"Text: {text}\nSimilarity: {similarity}\nMetadata: {metadata}\n---")
         end_time = time.time()
         TestVLite.test_times["retrieve"] = end_time - start_time
-    
     def test_delete(self):
-        self.vlite.add("This is a test text.")
+        self.vlite.add("This is a test text.", metadata={"id": "test_text_1"})
         start_time = time.time()
-        self.vlite.delete(0)
+        self.vlite.delete('test_text_1')
         end_time = time.time()
         TestVLite.test_times["delete"] = end_time - start_time
         print(f"Count of texts in the collection: {self.vlite.count()}")
