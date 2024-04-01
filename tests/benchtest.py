@@ -264,5 +264,5 @@ if __name__ == "__main__":
     print(results)
     print("Indexing Times:")
     print(indexing_times)
-    results.to_csv("vlite2_benchmark_results.csv", index=False)
-    indexing_times.to_csv("vlite2_benchmark_indexing_times.csv", index=False)
+    results.to_csv(os.path.join(os.path.dirname(__file__), "vlite2_benchmark_results.csv"), index=False)
+    indexing_times.to_csv(os.path.join(os.path.dirname(__file__), "vlite2_benchmark_indexing_times.csv"), index=False)
