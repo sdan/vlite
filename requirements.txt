@@ -14,3 +14,4 @@ tiktoken==0.4.0
 torch==2.2.2
 tqdm==4.65.0
 transformers==4.37.0
+chromadb==0.4.24
