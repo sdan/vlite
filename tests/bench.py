@@ -257,69 +257,9 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         )
 
         #################################################
-        #                  tinyvector                   #
+        #                  vespa                        #
         #################################################
-        print("Begin tinyvector benchmark.")
-        print("Initializing tinyvector instance...")
-        base_url = "http://localhost:5001"
-        table_name = "test"
-        index_types = "brute_force"
-        vector_dim = 384
-        t0 = time.time()
-        print("Creating tinyvector instance")
-        response = requests.post(f"{base_url}/create_table", json={
-            "table_name": table_name,
-            "index_types": index_types,
-            "dimension": 384,
-            "use_uuid": True
-        })
-        print("Status code: ", response.status_code)
-        print("Creating tinyvector index")
-        try:
-            response = requests.post(f"{base_url}/create_index", json={
-                "table_name": table_name,
-                "index_types": index_types
-            })
-            print("Status code: ", response.status_code)
-        except:
-            print("Error tinyvector index already exists")
-            t0 = time.time()
-
-        t1 = time.time()
-        print(f"Took {t1 - t0:.3f}s to initialize")
-
-        print("Adding vectors to tinyvector instance...")
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        t0 = time.time()
-        for i in range(len(corpus)):
-            embeddings = model.encode([corpus[i]]).tolist()
-            print("[tinyvec] vector: ", i)
-            print("[tinyvec] vector: ", embeddings[0])
-            print("[tinyvec] corpus: ", corpus[i])
-            try:
-                response = requests.post(f"{base_url}/insert", json={
-                    "table_name": table_name,
-                    "ids": [i],
-                    "vectors": embeddings[0],
-                    "content": corpus[i]
-                })
-            except:
-                print("Error inserting vector")
-                t0 = time.time()
-                break
-
-        t1 = time.time()
-        print(f"Took {t1 - t0:.3f}s to add vectors.")
-        indexing_times.append(
-            {
-                "num_tokens": token_count,
-                "lib": "tinyvector",
-                "num_embeddings": len(corpus),
-                "indexing_time": t1 - t0,
-            }
-        )
-
-        # no query for now
+        
 
         #################################################
         #                  qdrant                       #
@@ -411,11 +351,7 @@ def main(query, corpuss, top_k, token_counts) -> pd.DataFrame:
         #                  milvus                       #
         #################################################
 
-        # too complicated docs
-        temp_results = pd.DataFrame(results)
-        temp_indexing_times = pd.DataFrame(indexing_times)
-        temp_results.to_csv("temp_vlite_benchmark_query.csv", index=False)
-        temp_indexing_times.to_csv("temp_vlite_benchmark_index.csv", index=False)
+        
 
     results = pd.DataFrame(results)
     indexing_times = pd.DataFrame(indexing_times)
