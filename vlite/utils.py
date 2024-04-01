@@ -9,7 +9,11 @@ from typing import List, Union
 from transformers import AutoTokenizer, AutoModel
 import tiktoken
 import uuid
+
 def chop_and_chunk(text, max_seq_length=512):
+    """
+    Chop text into chunks of max_seq_length tokens.
+    """
     if isinstance(text, str):
         text = [text]
 

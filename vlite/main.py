@@ -27,17 +27,12 @@ class VLite:
         self.device = device
         self.model = EmbeddingModel(model_name) if model_name else EmbeddingModel()
 
-        # Load existing collection if available, otherwise initialize empty attributes
         try:
             with np.load(self.collection, allow_pickle=True) as data:
-                self.texts = data['texts'].tolist()
-                self.metadata = data['metadata'].tolist()
-                self.vectors = data['vectors']
+                self.index = data['index'].item()
         except FileNotFoundError:
             print(f"Collection file {self.collection} not found. Initializing empty attributes.")
-            self.texts = []  # List to store text chunks
-            self.metadata = {}  # Dictionary to store metadata
-            self.vectors = np.empty((0, self.model.dimension))  # Empty array to store embedding vectors
+            self.index = {}
 
     def add(self, data, metadata=None):
         """
@@ -69,14 +64,17 @@ class VLite:
             
             chunks = chop_and_chunk(text_content)
             encoded_data = self.model.embed(chunks, device=self.device)
-            self.vectors = np.vstack((self.vectors, encoded_data))
-
-            for idx in range(len(self.texts), len(self.texts) + len(chunks)):
-                        self.metadata[idx] = item_metadata
-
-            self.texts.extend(chunks)
-            results.append((item_id, self.vectors))
             
+            for idx, (chunk, vector) in enumerate(zip(chunks, encoded_data)):
+                chunk_id = f"{item_id}_{idx}"
+                self.index[chunk_id] = {
+                    'text': chunk,
+                    'metadata': item_metadata,
+                    'vector': vector
+                }
+        
+            results.append((item_id, encoded_data, item_metadata))
+        
         self.save()
         print("Text added successfully.")
         return results
@@ -97,23 +95,23 @@ class VLite:
         if text:
             print(f"Retrieving top {top_k} similar texts for query: {text}")
             query_vector = self.model.embed([text], device=self.device)
-            similarities = np.dot(query_vector, self.vectors.T).flatten()
+            similarities = np.dot(query_vector, np.array([item['vector'] for item in self.index.values()]).T).flatten()
 
             # Apply metadata filter while finding similar texts
             if metadata:
                 filtered_indices = []
-                for idx in np.argsort(similarities)[::-1]:  # Start from the most similar
-                    item_metadata = self.metadata.get(idx, {})
+                for idx, item_id in enumerate(self.index.keys()):  # Iterate over item IDs
+                    item_metadata = self.index[item_id]['metadata']
                     if all(item_metadata.get(key) == value for key, value in metadata.items()):
                         filtered_indices.append(idx)
                     if len(filtered_indices) == top_k:  # Stop when we have found top_k
                         break
-                top_k_idx = filtered_indices
+                top_k_ids = [list(self.index.keys())[idx] for idx in filtered_indices]
             else:
-                top_k_idx = np.argsort(similarities)[-top_k:][::-1]
+                top_k_ids = [list(self.index.keys())[idx] for idx in np.argsort(similarities)[-top_k:][::-1]]
 
             print("Retrieval completed.")
-            return [(self.texts[idx], similarities[idx], self.metadata[idx]) for idx in top_k_idx]
+            return [(self.index[idx]['text'], similarities[list(self.index.keys()).index(idx)], self.index[idx]['metadata']) for idx in top_k_ids]
         
     def delete(self, ids):
         """
@@ -129,11 +127,9 @@ class VLite:
             ids = [ids]
 
         deleted_count = 0
-        for idx in range(len(self.metadata) - 1, -1, -1):  # Iterate in reverse order
-            if self.metadata[idx].get('id') in ids:
-                del self.texts[idx]
-                del self.metadata[idx]
-                self.vectors = np.delete(self.vectors, idx, axis=0)
+        for id in ids:
+            if id in self.index:
+                del self.index[id]
                 deleted_count += 1
 
         if deleted_count > 0:
@@ -157,25 +153,22 @@ class VLite:
         Returns:
             bool: True if the item was successfully updated, False otherwise.
         """
-        print("UPDATERR",self.metadata)
-        idx = next((i for i, x in self.metadata.items() if x.get('id') == id), None)
-        
-        if idx is None:
+        if id in self.index:
+            if text is not None:
+                self.index[id]['text'] = text
+
+            if metadata is not None:
+                self.index[id]['metadata'].update(metadata)
+
+            if vector is not None:
+                self.index[id]['vector'] = vector
+
+            self.save()
+            print(f"Item with ID '{id}' updated successfully.")
+            return True
+        else:
             print(f"Item with ID '{id}' not found.")
             return False
-
-        if text is not None:
-            self.texts[idx] = text
-
-        if metadata is not None:
-            self.metadata[idx].update(metadata)
-
-        if vector is not None:
-            self.vectors[idx] = vector
-
-        self.save()
-        print(f"Item with ID '{id}' updated successfully.")
-        return True
     
     def get(self, ids=None, where=None):
         """
@@ -191,9 +184,9 @@ class VLite:
         if ids is not None:
             # Convert ids to a set for faster membership testing
             id_set = set(ids)
-            items = [(self.texts[idx], self.metadata[idx]) for idx in range(len(self.texts)) if self.metadata[idx].get('id') in id_set]
+            items = [(self.index[id]['text'], self.index[id]['metadata']) for id in self.index if id in id_set]
         else:
-            items = [(self.texts[idx], self.metadata[idx]) for idx in range(len(self.texts))]
+            items = [(self.index[id]['text'], self.index[id]['metadata']) for id in self.index]
 
         if where is not None:
             # Filter items based on metadata
@@ -213,15 +206,13 @@ class VLite:
             vector (numpy.ndarray, optional): Updated embedding vector of the item.
         """
         print(f"Setting attributes for item with ID: {id}")
-        idx = next((i for i, x in self.metadata.items() if x.get('id') == id), None)
-
-        if idx is not None:
+        if id in self.index:
             if text is not None:
-                self.texts[idx] = text
+                self.index[id]['text'] = text
             if metadata is not None:
-                self.metadata[idx].update(metadata)
+                self.index[id]['metadata'].update(metadata)
             if vector is not None:
-                self.vectors[idx] = vector
+                self.index[id]['vector'] = vector
             self.save()
         else:
             print(f"Item with ID {id} not found.")
@@ -233,7 +224,7 @@ class VLite:
         Returns:
             int: The count of items in the collection.
         """
-        return len(self.texts)
+        return len(self.index)
 
     def save(self):
         """
@@ -241,7 +232,7 @@ class VLite:
         """
         print(f"Saving collection to {self.collection}")
         with open(self.collection, 'wb') as f:
-            np.savez(f, texts=self.texts, metadata=self.metadata, vectors=self.vectors)
+            np.savez(f, index=self.index)
         print("Collection saved successfully.")
 
     def clear(self):
@@ -249,9 +240,7 @@ class VLite:
         Clears the entire collection, removing all items and resetting the attributes.
         """
         print("Clearing the collection...")
-        self.texts = []
-        self.metadata = {}
-        self.vectors = np.empty((0, self.model.dimension))
+        self.index = {}
         self.save()
         print("Collection cleared.")
     
@@ -275,8 +264,4 @@ class VLite:
         Returns:
             dict: A dictionary containing the collection data.
         """
-        return {
-            'texts': self.texts,
-            'metadata': self.metadata,
-            'vectors': self.vectors
-        }
+        return self.index

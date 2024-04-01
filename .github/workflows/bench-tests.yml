@@ -1,0 +1,45 @@
+name: Bench tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .
+
+    - name: Run benchmark
+      run: |
+        python ./tests/benchtest.py
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v2
+      with:
+        name: benchmark-results
+        path: |
+          ./tests/vlite2_benchmark_results.csv
+          ./tests/vlite2_benchmark_indexing_times.csv
+
+    - name: Display benchmark results
+      run: |
+        echo "Benchmark Results:"
+        cat ./tests/vlite2_benchmark_results.csv
+        echo ""
+        echo "Indexing Times:"
+        cat ./tests/vlite2_benchmark_indexing_times.csv
