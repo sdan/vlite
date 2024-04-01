@@ -22,14 +22,17 @@ def chop_and_chunk(text, max_seq_length=512):
 
     for t in text:
         token_ids = enc.encode(t, disallowed_special=())
-        start_idx = 0
-        while start_idx < len(token_ids):
-            end_idx = min(start_idx + max_seq_length, len(token_ids))
-            chunk = enc.decode(token_ids[start_idx:end_idx])
-            chunks.append(chunk)
-            start_idx = end_idx
+        num_tokens = len(token_ids)
+
+        if num_tokens <= max_seq_length:
+            chunks.append(t)
+        else:
+            for i in range(0, num_tokens, max_seq_length):
+                chunk = enc.decode(token_ids[i:i + max_seq_length])
+                chunks.append(chunk)
 
     return chunks
+ 
 
 def replace_newlines(text: str) -> str:
         """

@@ -92,11 +92,11 @@ if __name__ == "__main__":
     # Benchmark Config
     k = 5
     queries = [
-        "What is the architecture of GPT-4?",
-        "How does GPT-4 handle contextual understanding?",
-        "What are the key improvements in GPT-4 over GPT-3?",
-        "How many parameters does GPT-4 have?",
-        "What are the limitations of GPT-4?",
+        "What is the architecture of transformers?",
+        "How does transformers handle contextual understanding?",
+        "What are the key improvements in LSTM over Transformers?",
+        "How many parameters does Transformers have?",
+        "What are the limitations of Transformers?",
     ]
     corpus = load_file('data/attention.pdf')
     chopped_corpus = chop_and_chunk(text=corpus)
