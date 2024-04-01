@@ -12,6 +12,11 @@ from vlite.model import EmbeddingModel
 import chromadb
 from chromadb.utils import embedding_functions
 
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
+from sentence_transformers import SentenceTransformer
+
+
 def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
     """Run the VLite benchmark.
 
@@ -144,6 +149,87 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
                 "stddev_time": np.std(times),
             }
         )
+        
+        #################################################
+        #                  Qdrant                       #
+        #################################################
+        print("Begin Qdrant benchmark.")
+        print("Adding vectors to Qdrant instance...")
+        t0 = time.time()
+
+        qdrant_client = QdrantClient(
+            ":memory:"  # Use in-memory storage for benchmarking
+        )
+        qdrant_client.recreate_collection(
+            collection_name="my_collection",
+            vectors_config=VectorParams(size=1024, distance=Distance.COSINE),
+        )
+
+        model = SentenceTransformer('mixedbread-ai/mxbai-embed-large-v1')
+        vectors = model.encode(corpus).tolist()
+        
+        print("Adding vectors to Qdrant instance...")
+
+        try:
+            qdrant_client.upsert(
+                collection_name="my_collection",
+                points=[
+                    PointStruct(
+                        id=idx,
+                        vector=model.encode(vector).tolist(),
+                        payload={"text": corpus[idx]}
+                    )
+                    for idx, vector in enumerate(corpus)
+                ]
+            )
+        except Exception as e:
+            print(e)
+            print("Failed to upsert vectors to Qdrant instance.")
+            t0 = time.time()
+
+        t1 = time.time()
+        print(f"Took {t1 - t0:.3f}s to add vectors.")
+        indexing_times.append(
+            {
+                "num_tokens": token_count,
+                "lib": "Qdrant",
+                "num_embeddings": len(vectors),
+                "indexing_time": t1 - t0,
+            }
+        )
+
+        print("Starting Qdrant trials...")
+        times = []
+        
+        for i in range(len(query)):
+            t0 = time.time()
+            query_vector = model.encode(query[i]).tolist()
+            try:
+                hits = qdrant_client.search(
+                    collection_name="my_collection",
+                    query_vector=query_vector,
+                    limit=top_k
+                )
+                # print(f"Top {top_k} results: {[hit.payload['text'] for hit in hits]}")
+                t1 = time.time()
+            except Exception as e:
+                print(e)
+                print("Failed to query Qdrant instance.")
+                t0 = time.time()
+            times.append(t1 - t0)
+
+        results.append(
+            {
+                "num_embeddings": len(vectors),
+                "lib": "Qdrant",
+                "k": top_k,
+                "avg_time": np.mean(times),
+                "stddev_time": np.std(times),
+            }
+        )
+
+        print(json.dumps(results[-1], indent=2))
+        print("Done Qdrant benchmark.")
 
     results_df = pd.DataFrame(results)
     indexing_times_df = pd.DataFrame(indexing_times)
