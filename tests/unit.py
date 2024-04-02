@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from vlite.main import VLite
 import os
-from vlite.utils import process_file
+from vlite.utils import process_pdf
 import cProfile
 from pstats import Stats
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ class TestVLite(unittest.TestCase):
         # count number of tokens currently in the collection
         print(f"[test_add_pdf] Count of chunks in the collection: {self.vlite.count()}")
         start_time = time.time()
-        self.vlite.add(process_file(os.path.join(os.path.dirname(__file__), 'data/attention.pdf')), need_chunks=False)
+        self.vlite.add(process_pdf(os.path.join(os.path.dirname(__file__), 'data/attention.pdf')), need_chunks=False)
         end_time = time.time()
         TestVLite.test_times["add_pdf"] = end_time - start_time
         # time to add 71067 tokens from the GPT-4 paper
@@ -47,7 +47,7 @@ class TestVLite(unittest.TestCase):
         
     def test_add_pdf_ocr(self):
         start_time = time.time()
-        self.vlite.add(process_file(os.path.join(os.path.dirname(__file__), 'data/attention.pdf'), use_ocr=True), need_chunks=False, metadata={"ocr": True})
+        self.vlite.add(process_pdf(os.path.join(os.path.dirname(__file__), 'data/attention.pdf'), use_ocr=True), need_chunks=False, metadata={"ocr": True})
         end_time = time.time()
         TestVLite.test_times["add_pdf_ocr"] = end_time - start_time
         print(f"Time to add tokens: {TestVLite.test_times['add_pdf_ocr']} seconds")

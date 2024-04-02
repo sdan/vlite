@@ -3,7 +3,6 @@ import re
 import PyPDF2
 import docx2txt
 import pandas as pd
-from pptx import Presentation
 import requests
 from bs4 import BeautifulSoup
 from typing import List
@@ -134,25 +133,25 @@ def process_csv(file_path: str) -> List[str]:
     rows = df.astype(str).values.tolist()
     return rows
 
-def process_pptx(file_path: str, chunk_size: int = 512) -> List[str]:
-    """
-    Process a PowerPoint presentation (.pptx) and return a list of text chunks.
+# def process_pptx(file_path: str, chunk_size: int = 512) -> List[str]:
+#     """
+#     Process a PowerPoint presentation (.pptx) and return a list of text chunks.
 
-    Args:
-        file_path (str): The path to the PowerPoint presentation.
-        chunk_size (int, optional): The maximum number of tokens in each chunk. Defaults to 512.
+#     Args:
+#         file_path (str): The path to the PowerPoint presentation.
+#         chunk_size (int, optional): The maximum number of tokens in each chunk. Defaults to 512.
 
-    Returns:
-        List[str]: A list of text chunks.
-    """
-    presentation = Presentation(file_path)
-    text = ""
-    for slide in presentation.slides:
-        for shape in slide.shapes:
-            if hasattr(shape, 'text'):
-                text += shape.text + "\n"
+#     Returns:
+#         List[str]: A list of text chunks.
+#     """
+#     presentation = Presentation(file_path)
+#     text = ""
+#     for slide in presentation.slides:
+#         for shape in slide.shapes:
+#             if hasattr(shape, 'text'):
+#                 text += shape.text + "\n"
     
-    return chop_and_chunk(text, chunk_size)
+#     return chop_and_chunk(text, chunk_size)
 
 def process_webpage(url: str, chunk_size: int = 512) -> List[str]:
     """
