@@ -34,13 +34,14 @@ class VLite:
             print(f"Collection file {self.collection} not found. Initializing empty attributes.")
             self.index = {}
 
-    def add(self, data, metadata=None):
+    def add(self, data, metadata=None, need_chunks=True):
         """
         Adds text or a list of texts to the collection with optional ID within metadata.
 
         Args:
             data (str, dict, or list): Text data to be added. Can be a string, a dictionary containing text, id, and/or metadata, or a list of strings or dictionaries.
             metadata (dict, optional): Additional metadata to be appended to each text entry.
+            need_chunks (bool, optional): Whether to split the text into chunks before embedding. Defaults to True.
 
         Returns:
             list: A list of tuples, each containing the ID of the added text and the updated vectors array.
@@ -62,8 +63,13 @@ class VLite:
             item_metadata.update(metadata or {})
             item_metadata['id'] = item_id 
             
-            chunks = chop_and_chunk(text_content)
-            encoded_data = self.model.embed(chunks, device=self.device)
+            if need_chunks:
+                chunks = chop_and_chunk(text_content)
+                encoded_data = self.model.embed(chunks, device=self.device)
+            else:
+                chunks = [text_content]
+                print("Encoding text... not chunking")
+                encoded_data = self.model.embed(chunks, device=self.device)
             
             for idx, (chunk, vector) in enumerate(zip(chunks, encoded_data)):
                 chunk_id = f"{item_id}_{idx}"

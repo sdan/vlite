@@ -16,7 +16,7 @@ class EmbeddingModel:
         self.dimension = self.model.embeddings.position_embeddings.embedding_dim
         self.max_seq_length = self.model.embeddings.position_embeddings.num_embeddings
 
-    def embed(self, texts, max_seq_length=256, device="cpu"):
+    def embed(self, texts, max_seq_length=512, device="cpu"):
         device = torch.device(device)
         self.model.to(device)
 

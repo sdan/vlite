@@ -17,5 +17,9 @@ setup(
         'usearch',
         'PyPDF2',
         'docx2txt',
+        'surya-ocr'
     ],
+    # extras_require={
+    #     'ocr': ['surya-ocr']
+    # },
 )
