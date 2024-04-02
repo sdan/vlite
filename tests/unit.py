@@ -10,15 +10,7 @@ import time
 
 class TestVLite(unittest.TestCase):
     test_times = {}
-
-    def setUp(self):
-        self.vlite = VLite("vlite-unit")
-
-    def tearDown(self):
-        # Remove the file
-        if os.path.exists('vlite-unit'):
-            print("[+] Removing vlite")
-            os.remove('vlite-unit')
+    vlite = VLite("vlite-unit")
 
     def test_add__text(self):
         start_time = time.time()
@@ -43,12 +35,23 @@ class TestVLite(unittest.TestCase):
         print(f"Count of texts in the collection: {self.vlite.count()}")
     
     def test_add_pdf(self):
+        # count number of tokens currently in the collection
+        print(f"[test_add_pdf] Count of chunks in the collection: {self.vlite.count()}")
         start_time = time.time()
-        process_pdf(os.path.join(os.path.dirname(__file__), 'data/gpt-4.pdf'))
+        self.vlite.add(process_pdf(os.path.join(os.path.dirname(__file__), 'data/attention.pdf')), need_chunks=False)
         end_time = time.time()
         TestVLite.test_times["add_pdf"] = end_time - start_time
         # time to add 71067 tokens from the GPT-4 paper
+        print(f"[test_add_pdf] after Count of chunks in the collection: {self.vlite.count()}")
         print(f"Time to add 71067 tokens: {TestVLite.test_times['add_pdf']} seconds")
+        
+    def test_add_pdf_ocr(self):
+        start_time = time.time()
+        self.vlite.add(process_pdf(os.path.join(os.path.dirname(__file__), 'data/attention2.pdf'), use_ocr=True), need_chunks=False, metadata={"ocr": True})
+        end_time = time.time()
+        TestVLite.test_times["add_pdf_ocr"] = end_time - start_time
+        print(f"Time to add tokens: {TestVLite.test_times['add_pdf_ocr']} seconds")
+        print(f"[test_add_pdf_ocr] Count of chunks in the collection: {self.vlite.count()}")
 
     def test_retrieve(self):
         queries = [
@@ -68,13 +71,14 @@ class TestVLite(unittest.TestCase):
             "How does the GPT-4 handle tokenization?",
             "What are the novel contributions of the GPT-4 model?"
         ]
-        process_pdf(os.path.join(os.path.dirname(__file__), 'data/gpt-4.pdf'))
+        # PDF already added in the previous test
         start_time = time.time()
         for query in queries:
             for text, similarity, metadata in self.vlite.retrieve(query):
                 print(f"Text: {text}\nSimilarity: {similarity}\nMetadata: {metadata}\n---")
         end_time = time.time()
         TestVLite.test_times["retrieve"] = end_time - start_time
+        
     def test_delete(self):
         self.vlite.add("This is a test text.", metadata={"id": "test_text_1"})
         start_time = time.time()
@@ -96,6 +100,10 @@ class TestVLite(unittest.TestCase):
         print("\nTest times:")
         for test_name, test_time in cls.test_times.items():
             print(f"{test_name}: {test_time:.4f} seconds")
+            
+        if os.path.exists('vlite-unit.npz'):
+            print("[+] Removing vlite")
+            os.remove('vlite-unit.npz')
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
