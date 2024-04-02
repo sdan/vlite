@@ -47,7 +47,7 @@ class TestVLite(unittest.TestCase):
         
     def test_add_pdf_ocr(self):
         start_time = time.time()
-        self.vlite.add(process_pdf(os.path.join(os.path.dirname(__file__), 'data/attention.pdf'), use_ocr=True), need_chunks=False, metadata={"ocr": True})
+        self.vlite.add(process_pdf(os.path.join(os.path.dirname(__file__), 'data/attention2.pdf'), use_ocr=True), need_chunks=False, metadata={"ocr": True})
         end_time = time.time()
         TestVLite.test_times["add_pdf_ocr"] = end_time - start_time
         print(f"Time to add tokens: {TestVLite.test_times['add_pdf_ocr']} seconds")
