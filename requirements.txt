@@ -17,3 +17,4 @@ transformers==4.36.2
 chromadb==0.4.24
 qdrant-client
 git+https://github.com/sdan/surya.git
+beautifulsoup4==4.12.3
