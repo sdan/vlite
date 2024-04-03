@@ -17,7 +17,7 @@ chromadb==0.4.24
 qdrant-client
 git+https://github.com/sdan/surya.git
 beautifulsoup4==4.12.3
-llama-cpp-python==0.2.58
+llama-cpp-python==0.2.59
 huggingface_hub
 fastapi==0.110.1
 python-multipart

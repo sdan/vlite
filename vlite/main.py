@@ -28,7 +28,17 @@ class VLite:
 
         try:
             with np.load(self.collection, allow_pickle=True) as data:
-                self.index = data['index'].item()
+                index_data = data['index'].item()
+                self.index = {
+                    chunk_id: {
+                        'text': chunk_data['text'],
+                        'metadata': chunk_data['metadata'],
+                        'vector': np.array(chunk_data['vector']),  # Convert back to numpy array
+                        'binary_vector': np.array(chunk_data['binary_vector']),  # Convert back to numpy array
+                        'int8_vector': np.array(chunk_data['int8_vector'])  # Convert back to numpy array
+                    }
+                    for chunk_id, chunk_data in index_data.items()
+                }
         except FileNotFoundError:
             print(f"Collection file {self.collection} not found. Initializing empty attributes.")
             self.index = {}
@@ -60,8 +70,8 @@ class VLite:
                 item_id = str(uuid4())
 
             item_metadata.update(metadata or {})
-            item_metadata['id'] = item_id 
-            
+            item_metadata['id'] = item_id
+
             if need_chunks:
                 chunks = chop_and_chunk(text_content)
                 encoded_data = self.model.embed(chunks, device=self.device)
@@ -69,17 +79,24 @@ class VLite:
                 chunks = [text_content]
                 print("Encoding text... not chunking")
                 encoded_data = self.model.embed(chunks, device=self.device)
-            
-            for idx, (chunk, vector) in enumerate(zip(chunks, encoded_data)):
+
+            # Quantize the embeddings to binary and int8
+            binary_encoded_data = self.model.quantize(encoded_data, precision="binary")
+            int8_encoded_data = self.model.quantize(encoded_data, precision="int8")
+
+            for idx, (chunk, vector, binary_vector, int8_vector) in enumerate(zip(chunks, encoded_data, binary_encoded_data, int8_encoded_data)):
                 chunk_id = f"{item_id}_{idx}"
                 self.index[chunk_id] = {
                     'text': chunk,
                     'metadata': item_metadata,
-                    'vector': vector
+                    'vector': vector,
+                    'binary_vector': binary_vector.tolist(),  # Convert to list for JSON serialization
+                    'int8_vector': int8_vector.tolist()  # Convert to list for JSON serialization
                 }
-        
+
+
             results.append((item_id, encoded_data, item_metadata))
-        
+
         self.save()
         print("Text added successfully.")
         return results
@@ -100,24 +117,57 @@ class VLite:
         if text:
             print(f"Retrieving top {top_k} similar texts for query: {text}")
             query_vector = self.model.embed([text], device=self.device)
-            similarities = np.dot(query_vector, np.array([item['vector'] for item in self.index.values()]).T).flatten()
+            query_binary_vector = self.model.quantize(query_vector, precision="binary")
+            query_int8_vector = self.model.quantize(query_vector, precision="int8")
 
-            # Apply metadata filter while finding similar texts
-            if metadata:
-                filtered_indices = []
-                for idx, item_id in enumerate(self.index.keys()):  # Iterate over item IDs
-                    item_metadata = self.index[item_id]['metadata']
-                    if all(item_metadata.get(key) == value for key, value in metadata.items()):
-                        filtered_indices.append(idx)
-                    if len(filtered_indices) == top_k:  # Stop when we have found top_k
-                        break
+            # Perform binary search and rescoring
+            results = self.retrieval_rescore(query_binary_vector, query_int8_vector, top_k, metadata)
+
+            print("Retrieval completed.")
+            return [(self.index[idx]['text'], score, self.index[idx]['metadata']) for idx, score in results]
+
+    def retrieval_rescore(self, query_binary_vector, query_int8_vector, top_k, metadata=None):
+        """
+        Performs retrieval using binary search and rescoring using int8 embeddings.
+
+        Args:
+            query_binary_vector (numpy.ndarray): Binary vector of the query.
+            query_int8_vector (numpy.ndarray): Int8 vector of the query.
+            top_k (int): Number of top similar texts to retrieve.
+            metadata (dict, optional): Metadata to filter the retrieved texts.
+
+        Returns:
+            list: A list of tuples containing the chunk IDs and their similarity scores.
+        """
+        # Perform binary search
+        binary_vectors = np.array([item['binary_vector'] for item in self.index.values()])
+        similarities = np.dot(query_binary_vector, binary_vectors.T).flatten()
+
+        # Apply metadata filter while finding similar texts
+        if metadata:
+            filtered_indices = []
+            for idx, item_id in enumerate(self.index.keys()):  # Iterate over item IDs
+                item_metadata = self.index[item_id]['metadata']
+                if all(item_metadata.get(key) == value for key, value in metadata.items()):
+                    filtered_indices.append(idx)
+            if len(filtered_indices) == top_k:  # Stop when we have found top_k
                 top_k_ids = [list(self.index.keys())[idx] for idx in filtered_indices]
             else:
                 top_k_ids = [list(self.index.keys())[idx] for idx in np.argsort(similarities)[-top_k:][::-1]]
+        else:
+            top_k_ids = [list(self.index.keys())[idx] for idx in np.argsort(similarities)[-top_k:][::-1]]
 
-            print("Retrieval completed.")
-            return [(self.index[idx]['text'], similarities[list(self.index.keys()).index(idx)], self.index[idx]['metadata']) for idx in top_k_ids]
-    
+        # Perform rescoring using int8 embeddings
+        int8_vectors = np.array([self.index[idx]['int8_vector'] for idx in top_k_ids])
+        rescored_similarities = self.model.rescore(query_int8_vector, int8_vectors)
+
+        # Sort the results based on the rescored similarities
+        sorted_indices = np.argsort(rescored_similarities)[::-1]
+        sorted_ids = [top_k_ids[idx] for idx in sorted_indices]
+        sorted_scores = rescored_similarities[sorted_indices]
+
+        return list(zip(sorted_ids, sorted_scores))
+        
     def delete(self, ids):
         """
         Deletes items from the collection by their IDs.
@@ -236,9 +286,20 @@ class VLite:
         Saves the current state of the collection to a file.
         """
         print(f"Saving collection to {self.collection}")
+        index_data = {
+            chunk_id: {
+                'text': chunk_data['text'],
+                'metadata': chunk_data['metadata'],
+                'vector': chunk_data['vector'],
+                'binary_vector': chunk_data['binary_vector'],
+                'int8_vector': chunk_data['int8_vector']
+            }
+            for chunk_id, chunk_data in self.index.items()
+        }
         with open(self.collection, 'wb') as f:
-            np.savez(f, index=self.index)
+            np.savez(f, index=index_data)
         print("Collection saved successfully.")
+        
 
     def clear(self):
         """
