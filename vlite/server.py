@@ -7,7 +7,7 @@ from vlite.utils import process_file, process_pdf, process_webpage
 app = FastAPI(
     title="VLite API",
     description="API for VLite, a simple vector database for text embedding and retrieval.",
-    version="2.0.0",
+    version="0.2.0",
 )
 
 vlite = VLite()

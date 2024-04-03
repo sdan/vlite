@@ -19,7 +19,6 @@ class VLite:
         save(): Saves the collection to a file.
     """
     def __init__(self, collection=None, device='cpu', model_name='mixedbread-ai/mxbai-embed-large-v1'):
-        self.__version__ = '1.1.1'
         if collection is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection = f"vlite_{current_datetime}.npz"
