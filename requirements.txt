@@ -20,3 +20,4 @@ beautifulsoup4==4.12.3
 llama-cpp-python==0.2.58
 huggingface_hub
 fastapi==0.110.1
+python-multipart
