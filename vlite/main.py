@@ -34,7 +34,7 @@ class VLite:
             print(f"Collection file {self.collection} not found. Initializing empty attributes.")
             self.index = {}
 
-    def add(self, data, metadata=None, need_chunks=True):
+    def add(self, data, metadata=None, need_chunks=True, newEmbedding=False):
         """
         Adds text or a list of texts to the collection with optional ID within metadata.
 
@@ -85,7 +85,7 @@ class VLite:
         print("Text added successfully.")
         return results
 
-    def retrieve(self, text=None, top_k=5, metadata=None):
+    def retrieve(self, text=None, top_k=5, metadata=None, newEmbedding=False):
         """
         Retrieves similar texts from the collection based on text content, ID, or metadata.
 
@@ -118,7 +118,7 @@ class VLite:
 
             print("Retrieval completed.")
             return [(self.index[idx]['text'], similarities[list(self.index.keys()).index(idx)], self.index[idx]['metadata']) for idx in top_k_ids]
-        
+    
     def delete(self, ids):
         """
         Deletes items from the collection by their IDs.
