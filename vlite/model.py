@@ -17,7 +17,7 @@ class EmbeddingModel:
         embeddings_dict = self.model.create_embedding(texts)
         return [item["embedding"] for item in embeddings_dict["data"]]
     
-    def token_count(texts):
+    def token_count(self, texts):
         enc = tiktoken.get_encoding("cl100k_base")        
         tokens = 0
         for text in texts:

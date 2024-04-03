@@ -22,3 +22,15 @@ jobs:
         echo "Starting tests..."
         python ./tests/unit.py
         echo "Tests completed."
+      
+    - name: Start the server
+      run: |
+        echo "Starting the server..."
+        uvicorn server:app --host 0.0.0.0 --port 8000 &
+        sleep 5  # Wait for the server to start
+          
+    - name: Run server tests
+      run: |
+        echo "Starting server tests..."
+        pytest tests/test_server.py
+        echo "Tests completed."

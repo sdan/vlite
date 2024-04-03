@@ -4,8 +4,13 @@ from typing import List, Optional, Union
 from vlite.main import VLite
 from vlite.utils import process_file, process_pdf, process_webpage
 
-app = FastAPI()
-vlite = VLite(collection="vlite_server")
+app = FastAPI(
+    title="VLite API",
+    description="API for VLite, a simple vector database for text embedding and retrieval.",
+    version="2.0.0",
+)
+
+vlite = VLite()
 
 class TextData(BaseModel):
     text: str
@@ -21,42 +26,41 @@ class UpdateRequest(BaseModel):
     metadata: Optional[dict] = None
     vector: Optional[List[float]] = None
 
-@app.post("/add", summary="Add text to the collection")
+@app.post("/add", response_model=List[tuple], summary="Add text to the collection")
 async def add_text(data: Union[TextData, List[TextData]]):
     """
-    Add one or more texts to the VLite collection.
+    Add text or a list of texts to the VLite collection.
 
     - **data**: The text data to be added. It can be a single TextData object or a list of TextData objects.
-        - **text**: The text content to be added.
+        - **text**: The text content.
         - **metadata** (optional): Additional metadata associated with the text.
 
     Returns:
-    - A JSON object containing the message and the results of the add operation.
+    - A list of tuples containing the ID of the added text, the updated vectors array, and the metadata.
     """
     if isinstance(data, TextData):
         data = [data]
-
     texts = [item.text for item in data]
     metadatas = [item.metadata for item in data]
     results = vlite.add(texts, metadata=metadatas)
-    return {"message": "Texts added successfully", "results": results}
+    return results
 
-@app.post("/add_file", summary="Add text from a file to the collection")
+@app.post("/add_file", response_model=List[tuple], summary="Add text from a file to the collection")
 async def add_file(file: UploadFile = File(...)):
     """
     Add text from a file to the VLite collection.
 
-    - **file**: The file to be uploaded and processed. Supported file types: .txt, .pdf, .docx, .csv, .pptx.
+    - **file**: The file to be uploaded and processed.
 
     Returns:
-    - A JSON object containing the message and the results of the add operation.
+    - A list of tuples containing the ID of the added text, the updated vectors array, and the metadata.
     """
     file_path = await save_upload_file(file)
     chunks = process_file(file_path)
     results = vlite.add(chunks)
-    return {"message": "File processed and added successfully", "results": results}
+    return results
 
-@app.post("/add_pdf", summary="Add text from a PDF file to the collection")
+@app.post("/add_pdf", response_model=List[tuple], summary="Add text from a PDF file to the collection")
 async def add_pdf(file: UploadFile = File(...), use_ocr: bool = False):
     """
     Add text from a PDF file to the VLite collection.
@@ -65,14 +69,14 @@ async def add_pdf(file: UploadFile = File(...), use_ocr: bool = False):
     - **use_ocr** (optional): Whether to use OCR for text extraction. Default is False.
 
     Returns:
-    - A JSON object containing the message and the results of the add operation.
+    - A list of tuples containing the ID of the added text, the updated vectors array, and the metadata.
     """
     file_path = await save_upload_file(file)
     chunks = process_pdf(file_path, use_ocr=use_ocr)
     results = vlite.add(chunks)
-    return {"message": "PDF processed and added successfully", "results": results}
+    return results
 
-@app.post("/add_webpage", summary="Add text from a webpage to the collection")
+@app.post("/add_webpage", response_model=List[tuple], summary="Add text from a webpage to the collection")
 async def add_webpage(url: str):
     """
     Add text from a webpage to the VLite collection.
@@ -80,13 +84,13 @@ async def add_webpage(url: str):
     - **url**: The URL of the webpage to be processed.
 
     Returns:
-    - A JSON object containing the message and the results of the add operation.
+    - A list of tuples containing the ID of the added text, the updated vectors array, and the metadata.
     """
     chunks = process_webpage(url)
     results = vlite.add(chunks)
-    return {"message": "Webpage processed and added successfully", "results": results}
+    return results
 
-@app.post("/retrieve", summary="Retrieve similar texts")
+@app.post("/retrieve", response_model=List[tuple], summary="Retrieve similar texts")
 async def retrieve_text(request: RetrieveRequest):
     """
     Retrieve similar texts from the VLite collection based on the provided query text and metadata.
@@ -97,15 +101,15 @@ async def retrieve_text(request: RetrieveRequest):
         - **metadata** (optional): Metadata to filter the retrieved texts.
 
     Returns:
-    - A JSON object containing the results of the retrieval operation.
+    - A list of tuples containing the similar texts, their similarity scores, and metadata (if applicable).
     """
     if request.text is None and request.metadata is None:
         raise HTTPException(status_code=400, detail="Either 'text' or 'metadata' must be provided")
 
     results = vlite.retrieve(text=request.text, top_k=request.top_k, metadata=request.metadata)
-    return {"results": results}
+    return results
 
-@app.delete("/delete", summary="Delete items from the collection")
+@app.delete("/delete", response_model=int, summary="Delete items from the collection")
 async def delete_texts(ids: Union[str, List[str]]):
     """
     Delete one or more items from the VLite collection based on their IDs.
@@ -113,12 +117,12 @@ async def delete_texts(ids: Union[str, List[str]]):
     - **ids**: A single ID or a list of IDs of the items to delete.
 
     Returns:
-    - A JSON object containing the message and the number of items deleted.
+    - The number of items deleted from the collection.
     """
     deleted_count = vlite.delete(ids)
-    return {"message": f"{deleted_count} item(s) deleted successfully"}
+    return deleted_count
 
-@app.put("/update/{item_id}", summary="Update an item in the collection")
+@app.put("/update/{item_id}", response_model=bool, summary="Update an item in the collection")
 async def update_text(item_id: str, request: UpdateRequest):
     """
     Update an item in the VLite collection based on its ID.
@@ -130,14 +134,12 @@ async def update_text(item_id: str, request: UpdateRequest):
         - **vector** (optional): The updated embedding vector of the item.
 
     Returns:
-    - A JSON object containing the message indicating the success of the update operation.
+    - True if the item was successfully updated, False otherwise.
     """
     updated = vlite.update(item_id, text=request.text, metadata=request.metadata, vector=request.vector)
-    if not updated:
-        raise HTTPException(status_code=404, detail=f"Item with ID '{item_id}' not found")
-    return {"message": f"Item with ID '{item_id}' updated successfully"}
+    return updated
 
-@app.get("/get", summary="Get items from the collection")
+@app.get("/get", response_model=List[tuple], summary="Get items from the collection")
 async def get_texts(ids: Optional[List[str]] = None, where: Optional[dict] = None):
     """
     Retrieve items from the VLite collection based on their IDs and/or metadata.
@@ -146,51 +148,43 @@ async def get_texts(ids: Optional[List[str]] = None, where: Optional[dict] = Non
     - **where** (optional): Metadata filter to apply. Items matching the filter will be returned.
 
     Returns:
-    - A JSON object containing the results of the retrieval operation.
+    - A list of tuples containing the retrieved items, each item being a tuple of (text, metadata).
     """
     results = vlite.get(ids=ids, where=where)
-    return {"results": results}
+    return results
 
-@app.get("/count", summary="Get the count of items in the collection")
+@app.get("/count", response_model=int, summary="Get the count of items in the collection")
 async def count_items():
     """
     Get the number of items in the VLite collection.
 
     Returns:
-    - A JSON object containing the count of items in the collection.
+    - The count of items in the collection.
     """
     count = vlite.count()
-    return {"count": count}
+    return count
 
-@app.post("/save", summary="Save the collection to a file")
+@app.post("/save", response_model=None, summary="Save the collection to a file")
 async def save_collection():
     """
     Save the current state of the VLite collection to a file.
-
-    Returns:
-    - A JSON object containing the message indicating the success of the save operation.
     """
     vlite.save()
-    return {"message": "Collection saved successfully"}
 
-@app.post("/clear", summary="Clear the collection")
+@app.post("/clear", response_model=None, summary="Clear the collection")
 async def clear_collection():
     """
     Clear the entire VLite collection, removing all items and resetting the attributes.
-
-    Returns:
-    - A JSON object containing the message indicating the success of the clear operation.
     """
     vlite.clear()
-    return {"message": "Collection cleared successfully"}
 
-@app.get("/info", summary="Get information about the collection")
+@app.get("/info", response_model=dict, summary="Get information about the collection")
 async def get_info():
     """
     Get information about the VLite collection, including the number of items, collection file path, and the embedding model used.
 
     Returns:
-    - A JSON object containing the collection information.
+    - A dictionary containing the collection information.
     """
     info = {
         "count": vlite.count(),
@@ -199,16 +193,16 @@ async def get_info():
     }
     return info
 
-@app.get("/dump", summary="Dump the collection data")
+@app.get("/dump", response_model=dict, summary="Dump the collection data")
 async def dump_data():
     """
     Dump the VLite collection data to a dictionary for serialization.
 
     Returns:
-    - A JSON object containing the dumped collection data.
+    - A dictionary containing the dumped collection data.
     """
     data = vlite.dump()
-    return {"data": data}
+    return data
 
 async def save_upload_file(upload_file: UploadFile) -> str:
     """
