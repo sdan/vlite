@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from server import app, vlite
+from vlite.server import app, vlite
 import os
 import numpy as np
 from vlite.utils import process_pdf
