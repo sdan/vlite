@@ -2,6 +2,7 @@ import os
 import torch
 import llama_cpp
 from huggingface_hub import hf_hub_download
+import tiktoken
 
 class EmbeddingModel:
     def __init__(self, model_name='mixedbread-ai/mxbai-embed-large-v1'):
@@ -16,9 +17,12 @@ class EmbeddingModel:
         embeddings_dict = self.model.create_embedding(texts)
         return [item["embedding"] for item in embeddings_dict["data"]]
     
-    def token_count(self, texts):
+    def token_count(texts):
+        enc = tiktoken.get_encoding("cl100k_base")        
         tokens = 0
         for text in texts:
-            tokens += len(self.tokenizer.tokenize(text))
+            token_ids = enc.encode(text, disallowed_special=())
+            tokens += len(token_ids)
         return tokens
+
     
