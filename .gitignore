@@ -63,3 +63,4 @@ coverage.xml
 # environments
 env
 
+tests/notebook.ipynb
