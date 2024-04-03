@@ -13,8 +13,9 @@ setuptools==65.3.0
 tiktoken==0.4.0
 torch==2.2.2
 tqdm==4.65.0
-transformers==4.36.2
 chromadb==0.4.24
 qdrant-client
 git+https://github.com/sdan/surya.git
 beautifulsoup4==4.12.3
+llama-cpp-python==0.2.58
+huggingface_hub
