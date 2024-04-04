@@ -21,3 +21,5 @@ llama-cpp-python==0.2.59
 huggingface_hub
 fastapi==0.110.1
 python-multipart
+lancedb
+langchain==0.1.14

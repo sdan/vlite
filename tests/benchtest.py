@@ -16,6 +16,14 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from sentence_transformers import SentenceTransformer
 
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
+from langchain.document_loaders import TextLoader
+from langchain.vectorstores import LanceDB, Lantern, FAISS
+from langchain.text_splitter import CharacterTextSplitter
+
+from langchain.docstore.document import Document
+
 
 def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
     """Run the VLite benchmark.
@@ -95,6 +103,101 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
         print(json.dumps(results[-1], indent=2))
         print("Done VLite benchmark.")
         
+                
+        #################################################
+        #                  LanceDB                      #
+        #################################################
+        print("Begin LanceDB benchmark.")
+        print("Adding documents to LanceDB instance...")
+        t0 = time.time()
+
+        embeddings = HuggingFaceEmbeddings(model_name="mixedbread-ai/mxbai-embed-large-v1")
+        documents = [Document(page_content=text) for text in corpus]
+        docsearch = LanceDB.from_documents(documents, embeddings)
+
+        t1 = time.time()
+        print(f"Took {t1 - t0:.3f}s to add documents.")
+        indexing_times.append(
+            {
+                "num_tokens": token_count,
+                "lib": "LanceDB",
+                "num_embeddings": len(documents),
+                "indexing_time": t1 - t0,
+            }
+        )
+
+        print("Starting LanceDB trials...")
+        times = []
+        for query in queries:
+            t0 = time.time()
+            docs = docsearch.similarity_search(query, k=top_k)
+            t1 = time.time()
+            times.append(t1 - t0)
+
+            print(f"Top {top_k} results for query '{query}':")
+            for doc in docs:
+                print(f"Text: {doc.page_content}\n---")
+
+        results.append(
+            {
+                "num_embeddings": len(documents),
+                "lib": "LanceDB",
+                "k": top_k,
+                "avg_time": np.mean(times),
+                "stddev_time": np.std(times),
+            }
+        )
+
+        print(json.dumps(results[-1], indent=2))
+        print("Done LanceDB benchmark.")
+
+        #################################################
+        #                  FAISS                        #
+        #################################################
+        print("Begin FAISS benchmark.")
+        print("Adding documents to FAISS instance...")
+        t0 = time.time()
+
+        embeddings = HuggingFaceEmbeddings(model_name="mixedbread-ai/mxbai-embed-large-v1")
+        documents = [Document(page_content=text) for text in corpus]
+        db = FAISS.from_documents(documents, embeddings)
+
+        t1 = time.time()
+        print(f"Took {t1 - t0:.3f}s to add documents.")
+        indexing_times.append(
+            {
+                "num_tokens": token_count,
+                "lib": "FAISS",
+                "num_embeddings": len(corpus),
+                "indexing_time": t1 - t0,
+            }
+        )
+
+        print("Starting FAISS trials...")
+        times = []
+        for query in queries:
+            t0 = time.time()
+            docs = db.similarity_search(query, k=top_k)
+            t1 = time.time()
+            times.append(t1 - t0)
+
+            print(f"Top {top_k} results for query '{query}':")
+            for doc in docs:
+                print(f"Text: {doc.page_content}\n---")
+
+        results.append(
+            {
+                "num_embeddings": len(corpus),
+                "lib": "FAISS",
+                "k": top_k,
+                "avg_time": np.mean(times),
+                "stddev_time": np.std(times),
+            }
+        )
+
+        print(json.dumps(results[-1], indent=2))
+        print("Done FAISS benchmark.")
+
         #################################################
         #                  Chroma                       #
         #################################################
@@ -104,7 +207,7 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
 
         chroma_client = chromadb.Client()
         sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="mixedbread-ai/mxbai-embed-large-v1")
-        collection = chroma_client.create_collection(name="my_collection", embedding_function=sentence_transformer_ef)        
+        collection = chroma_client.get_or_create_collection(name="benchtest", embedding_function=sentence_transformer_ef)        
         ids = [str(i) for i in range(len(corpus))]
         try:
             collection.add(documents=corpus, ids=ids)
