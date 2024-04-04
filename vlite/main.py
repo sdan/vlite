@@ -21,7 +21,7 @@ class VLite:
     def __init__(self, collection=None, device='cpu', model_name='mixedbread-ai/mxbai-embed-large-v1'):
         if collection is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            collection = f"vlite_{current_datetime}.npz"
+            collection = f"vlite_{current_datetime}"
         self.collection = f"{collection}.npz"
         self.device = device
         self.model = EmbeddingModel(model_name) if model_name else EmbeddingModel()
@@ -119,13 +119,12 @@ class VLite:
             query_binary_vector = self.model.quantize(query_vector, precision="binary")
             query_int8_vector = self.model.quantize(query_vector, precision="int8")
 
-            # Perform binary search and rescoring
-            results = self.retrieval_rescore(query_binary_vector, query_int8_vector, top_k, metadata)
+            results = self.rescore(query_binary_vector, query_int8_vector, top_k, metadata)
 
             print("Retrieval completed.")
             return [(self.index[idx]['text'], score, self.index[idx]['metadata']) for idx, score in results]
-
-    def retrieval_rescore(self, query_binary_vector, query_int8_vector, top_k, metadata=None):
+        
+    def rescore(self, query_binary_vector, query_int8_vector, top_k, metadata=None, rescore_multiplier=4):
         """
         Performs retrieval using binary search and rescoring using int8 embeddings.
 
@@ -141,17 +140,17 @@ class VLite:
         # Perform binary search
         binary_vectors = np.array([item['binary_vector'] for item in self.index.values()])
         similarities = np.dot(query_binary_vector, binary_vectors.T).flatten()
-        top_k_indices = np.argsort(similarities)[-top_k*4:][::-1]  # Retrieve top_k*4 results for rescoring
+        top_k_indices = np.argsort(similarities)[-top_k*rescore_multiplier:][::-1]
         top_k_ids = [list(self.index.keys())[idx] for idx in top_k_indices]
 
-        # Apply metadata filter on the retrieved top_k*4 items
+        # Filter results based on metadata
         if metadata:
             filtered_ids = []
             for item_id in top_k_ids:
                 item_metadata = self.index[item_id]['metadata']
                 if all(item_metadata.get(key) == value for key, value in metadata.items()):
                     filtered_ids.append(item_id)
-            top_k_ids = filtered_ids[:top_k*4]
+            top_k_ids = filtered_ids[:top_k*rescore_multiplier]
 
         # Perform rescoring using int8 embeddings
         int8_vectors = np.array([self.index[idx]['int8_vector'] for idx in top_k_ids])
