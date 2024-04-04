@@ -43,7 +43,7 @@ class VLite:
             print(f"Collection file {self.collection} not found. Initializing empty attributes.")
             self.index = {}
 
-    def add(self, data, metadata=None, need_chunks=True, newEmbedding=False):
+    def add(self, data, metadata=None, need_chunks=True, newEmbedding=False, fast=True):
         """
         Adds text or a list of texts to the collection with optional ID within metadata.
 
@@ -51,6 +51,7 @@ class VLite:
             data (str, dict, or list): Text data to be added. Can be a string, a dictionary containing text, id, and/or metadata, or a list of strings or dictionaries.
             metadata (dict, optional): Additional metadata to be appended to each text entry.
             need_chunks (bool, optional): Whether to split the text into chunks before embedding. Defaults to True.
+            fast (bool, optional): Whether to use fast mode for chunking. Defaults to True.
 
         Returns:
             list: A list of tuples, each containing the ID of the added text and the updated vectors array.
@@ -58,6 +59,9 @@ class VLite:
         print("Adding text to the collection...")
         data = [data] if not isinstance(data, list) else data
         results = []
+        all_chunks = []
+        all_metadata = []
+        all_ids = []
 
         for item in data:
             if isinstance(item, dict):
@@ -73,28 +77,31 @@ class VLite:
             item_metadata['id'] = item_id
 
             if need_chunks:
-                chunks = chop_and_chunk(text_content)
-                encoded_data = self.model.embed(chunks, device=self.device)
+                chunks = chop_and_chunk(text_content, fast=fast)
             else:
                 chunks = [text_content]
                 print("Encoding text... not chunking")
-                encoded_data = self.model.embed(chunks, device=self.device)
 
-            binary_encoded_data = self.model.quantize(encoded_data, precision="binary")
-            int8_encoded_data = self.model.quantize(encoded_data, precision="int8")
+            all_chunks.extend(chunks)
+            all_metadata.extend([item_metadata] * len(chunks))
+            all_ids.extend([item_id] * len(chunks))
 
-            for idx, (chunk, vector, binary_vector, int8_vector) in enumerate(zip(chunks, encoded_data, binary_encoded_data, int8_encoded_data)):
-                chunk_id = f"{item_id}_{idx}"
-                self.index[chunk_id] = {
-                    'text': chunk,
-                    'metadata': item_metadata,
-                    'vector': vector,
-                    'binary_vector': binary_vector.tolist(), 
-                    'int8_vector': int8_vector.tolist()
-                }
+        encoded_data = self.model.embed(all_chunks, device=self.device)
+        binary_encoded_data = self.model.quantize(encoded_data, precision="binary")
+        int8_encoded_data = self.model.quantize(encoded_data, precision="int8")
 
+        for idx, (chunk, vector, binary_vector, int8_vector, metadata, item_id) in enumerate(zip(all_chunks, encoded_data, binary_encoded_data, int8_encoded_data, all_metadata, all_ids)):
+            chunk_id = f"{item_id}_{idx}"
+            self.index[chunk_id] = {
+                'text': chunk,
+                'metadata': metadata,
+                'vector': vector,
+                'binary_vector': binary_vector.tolist(),
+                'int8_vector': int8_vector.tolist()
+            }
 
-            results.append((item_id, encoded_data, item_metadata))
+            if item_id not in [result[0] for result in results]:
+                results.append((item_id, encoded_data, metadata))
 
         self.save()
         print("Text added successfully.")
@@ -115,11 +122,18 @@ class VLite:
         print("Retrieving similar texts...")
         if text:
             print(f"Retrieving top {top_k} similar texts for query: {text}")
-            query_vector = self.model.embed([text], device=self.device)
-            query_binary_vector = self.model.quantize(query_vector, precision="binary")
-            query_int8_vector = self.model.quantize(query_vector, precision="int8")
+            query_chunks = chop_and_chunk(text, fast=True)
+            query_vectors = self.model.embed(query_chunks, device=self.device)
+            query_binary_vectors = self.model.quantize(query_vectors, precision="binary")
+            query_int8_vectors = self.model.quantize(query_vectors, precision="int8")
 
-            results = self.rescore(query_binary_vector, query_int8_vector, top_k, metadata)
+            results = []
+            for query_binary_vector, query_int8_vector in zip(query_binary_vectors, query_int8_vectors):
+                chunk_results = self.rescore(query_binary_vector, query_int8_vector, top_k, metadata)
+                results.extend(chunk_results)
+
+            results.sort(key=lambda x: x[1], reverse=True)
+            results = results[:top_k]
 
             print("Retrieval completed.")
             return [(self.index[idx]['text'], score, self.index[idx]['metadata']) for idx, score in results]
@@ -137,9 +151,13 @@ class VLite:
         Returns:
             list: A list of tuples containing the chunk IDs and their similarity scores.
         """
+        # Reshape query_binary_vector and query_int8_vector to 1D arrays
+        query_binary_vector = query_binary_vector.reshape(-1)
+        query_int8_vector = query_int8_vector.reshape(-1)
+
         # Perform binary search
         binary_vectors = np.array([item['binary_vector'] for item in self.index.values()])
-        binary_similarities = np.einsum('i,ji->j', query_binary_vector[0], binary_vectors)
+        binary_similarities = np.einsum('i,ji->j', query_binary_vector, binary_vectors)
         top_k_indices = np.argpartition(binary_similarities, -top_k*4)[-top_k*4:]
         top_k_ids = [list(self.index.keys())[idx] for idx in top_k_indices]
 
@@ -154,7 +172,7 @@ class VLite:
 
         # Perform rescoring using int8 embeddings
         int8_vectors = np.array([self.index[idx]['int8_vector'] for idx in top_k_ids])
-        int8_similarities = np.einsum('i,ji->j', query_int8_vector[0], int8_vectors)
+        int8_similarities = np.einsum('i,ji->j', query_int8_vector, int8_vectors)
 
         # Sort the results based on the int8 similarities
         sorted_indices = np.argpartition(int8_similarities, -top_k)[-top_k:]

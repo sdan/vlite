@@ -15,6 +15,8 @@ class EmbeddingModel:
         self.max_seq_length = 512 # hardcoded
 
     def embed(self, texts, max_seq_length=512, device="cpu"):
+        if isinstance(texts, str):
+            texts = [texts]
         embeddings_dict = self.model.create_embedding(texts)
         return [item["embedding"] for item in embeddings_dict["data"]]
     
