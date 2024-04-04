@@ -84,7 +84,7 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
 
         results.append(
             {
-                "num_embeddings": len(results_retrieve),
+                "num_embeddings": len(result_add),
                 "lib": "VLite",
                 "k": top_k,
                 "avg_time": np.mean(times),
@@ -176,10 +176,10 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
                 points=[
                     PointStruct(
                         id=idx,
-                        vector=model.encode(vector).tolist(),
-                        payload={"text": corpus[idx]}
+                        vector=model.encode(text).tolist(),
+                        payload={"text": text}
                     )
-                    for idx, vector in enumerate(corpus)
+                    for idx, text in enumerate(corpus)
                 ]
             )
         except Exception as e:
@@ -203,7 +203,7 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
         
         for i in range(len(query)):
             t0 = time.time()
-            query_vector = model.encode(query[i]).tolist()
+            query_vector = model.encode(query).tolist()
             try:
                 hits = qdrant_client.search(
                     collection_name="my_collection",
