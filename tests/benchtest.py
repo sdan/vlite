@@ -150,6 +150,65 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
 
         print(json.dumps(results[-1], indent=2))
         print("Done LanceDB benchmark.")
+        
+        # #################################################
+        # #                  Lantern                      #
+        # #################################################
+        # print("Begin Lantern benchmark.")
+        # print("Adding documents to Lantern instance...")
+        # t0 = time.time()
+
+        # embeddings = HuggingFaceEmbeddings(model_name="mixedbread-ai/mxbai-embed-large-v1")
+
+        # # CONNECTION_STRING = """
+        # COLLECTION_NAME = ""
+        
+        # documents = [Document(page_content=text) for text in corpus]
+        
+
+        # db = Lantern.from_documents(
+        #     embedding=embeddings,
+        #     documents=documents,
+        #     collection_name=COLLECTION_NAME,
+        #     connection_string=CONNECTION_STRING,
+        #     pre_delete_collection=True,
+        # )
+
+        # t1 = time.time()
+        # print(f"Took {t1 - t0:.3f}s to add documents.")
+        # indexing_times.append(
+        #     {
+        #         "num_tokens": token_count,
+        #         "lib": "Lantern",
+        #         "num_embeddings": len(corpus),
+        #         "indexing_time": t1 - t0,
+        #     }
+        # )
+
+        # print("Starting Lantern trials...")
+        # times = []
+        # for query in queries:
+        #     t0 = time.time()
+        #     docs = db.similarity_search(query, k=top_k)
+        #     t1 = time.time()
+        #     times.append(t1 - t0)
+
+        #     print(f"Top {top_k} results for query '{query}':")
+        #     for doc in docs:
+        #         print(f"Text: {doc.page_content}\n---")
+
+        # results.append(
+        #     {
+        #         "num_embeddings": len(corpus),
+        #         "lib": "Lantern",
+        #         "k": top_k,
+        #         "avg_time": np.mean(times),
+        #         "stddev_time": np.std(times),
+        #     }
+        # )
+
+        # print(json.dumps(results[-1], indent=2))
+        # print("Done Lantern benchmark.")
 
         #################################################
         #                  FAISS                        #
