@@ -8,9 +8,6 @@ from bs4 import BeautifulSoup
 from typing import List
 import tiktoken
 
-import numpy as np
-import itertools
-
 try:
     from surya.ocr import run_ocr
     from surya.model.detection import segformer
