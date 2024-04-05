@@ -19,6 +19,6 @@ setup(
         'tiktoken'
     ],
     extras_require={
-        'ocr': ['surya @ git://github.com/sdan/surya.git']
+        'ocr': ['surya-ocr-vlite']
     },
 )
