@@ -164,60 +164,60 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
         
 
         #################################################
-        #                  pgvector                     #
+        #                  pgvector       unable to run remote                #
         #################################################
-        print("Begin PGVector benchmark.")
-        print("Adding documents to PGVector instance...")
-        t0 = time.time()
+        # print("Begin PGVector benchmark.")
+        # print("Adding documents to PGVector instance...")
+        # t0 = time.time()
 
-        embeddings = HuggingFaceEmbeddings(model_name="mixedbread-ai/mxbai-embed-large-v1")
+        # embeddings = HuggingFaceEmbeddings(model_name="mixedbread-ai/mxbai-embed-large-v1")
 
-        documents = [Document(page_content=text.replace('\0', '')) for text in corpus]
+        # documents = [Document(page_content=text.replace('\0', '')) for text in corpus]
 
-        CONNECTION_STRING = "postgresql+psycopg2://postgres:password@localhost:5433/embedding_test"
+        # CONNECTION_STRING = "postgresql+psycopg2://postgres:password@localhost:5433/embedding_test"
 
-        db = PGVector.from_documents(
-            embedding=embeddings,
-            documents=documents,
-            collection_name="benchmark_test",
-            connection_string=CONNECTION_STRING,
-        )
+        # db = PGVector.from_documents(
+        #     embedding=embeddings,
+        #     documents=documents,
+        #     collection_name="benchmark_test",
+        #     connection_string=CONNECTION_STRING,
+        # )
 
-        t1 = time.time()
-        print(f"Took {t1 - t0:.3f}s to add documents.")
-        indexing_times.append(
-            {
-                "num_tokens": token_count,
-                "lib": "PGVector",
-                "num_embeddings": len(documents),
-                "indexing_time": t1 - t0,
-            }
-        )
+        # t1 = time.time()
+        # print(f"Took {t1 - t0:.3f}s to add documents.")
+        # indexing_times.append(
+        #     {
+        #         "num_tokens": token_count,
+        #         "lib": "PGVector",
+        #         "num_embeddings": len(documents),
+        #         "indexing_time": t1 - t0,
+        #     }
+        # )
 
-        print("Starting PGVector trials...")
-        times = []
-        for query in queries:
-            t0 = time.time()
-            docs = db.similarity_search_with_score(query, k=top_k)
-            t1 = time.time()
-            times.append(t1 - t0)
+        # print("Starting PGVector trials...")
+        # times = []
+        # for query in queries:
+        #     t0 = time.time()
+        #     docs = db.similarity_search_with_score(query, k=top_k)
+        #     t1 = time.time()
+        #     times.append(t1 - t0)
 
-            print(f"Top {top_k} results for query '{query}':")
-            for doc, score in docs:
-                print(f"Text: {doc.page_content}\nScore: {score}\n---")
+        #     print(f"Top {top_k} results for query '{query}':")
+        #     for doc, score in docs:
+        #         print(f"Text: {doc.page_content}\nScore: {score}\n---")
 
-        results.append(
-            {
-                "num_embeddings": len(documents),
-                "lib": "PGVector",
-                "k": top_k,
-                "avg_time": np.mean(times),
-                "stddev_time": np.std(times),
-            }
-        )
+        # results.append(
+        #     {
+        #         "num_embeddings": len(documents),
+        #         "lib": "PGVector",
+        #         "k": top_k,
+        #         "avg_time": np.mean(times),
+        #         "stddev_time": np.std(times),
+        #     }
+        # )
 
-        print(json.dumps(results[-1], indent=2))
-        print("Done PGVector benchmark.")
+        # print(json.dumps(results[-1], indent=2))
+        # print("Done PGVector benchmark.")
 
         #################################################
         #                  FAISS                        #
@@ -321,97 +321,97 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
             }
         )
 
-        #################################################
-        #                  Pinecone                     #
-        #################################################
-        print("Begin Pinecone benchmark.")
-        print("Initializing Pinecone...")
-        t0 = time.time()
+    #     #################################################
+    #     #                  Pinecone   unable to run remote                  #
+    #     #################################################
+    #     print("Begin Pinecone benchmark.")
+    #     print("Initializing Pinecone...")
+    #     t0 = time.time()
 
-        # Replace these with your Pinecone API key and environment
-        pinecone = Pinecone(api_key="")
+    #     # Replace these with your Pinecone API key and environment
+    #     pinecone = Pinecone(api_key="")
 
 
-        environment = "us-east-1-aws"
-        index_name = "quickstart"
+    #     environment = "us-east-1-aws"
+    #     index_name = "quickstart"
 
-    #     if index_name not in pinecone.list_indexes():
-    #         pinecone.create_index(name=index_name, dimension=1024, metric="euclidean", # Replace with your model metric
-    # spec=ServerlessSpec(
-    #     cloud="aws",
-    #     region="us-west-2"
-    # ))
-        t1 = time.time()
-        # now connect to the index
-        index = pinecone.Index("quickstart")
-        model = SentenceTransformer('mixedbread-ai/mxbai-embed-large-v1')
+    # #     if index_name not in pinecone.list_indexes():
+    # #         pinecone.create_index(name=index_name, dimension=1024, metric="euclidean", # Replace with your model metric
+    # # spec=ServerlessSpec(
+    # #     cloud="aws",
+    # #     region="us-west-2"
+    # # ))
+    #     t1 = time.time()
+    #     # now connect to the index
+    #     index = pinecone.Index("quickstart")
+    #     model = SentenceTransformer('mixedbread-ai/mxbai-embed-large-v1')
 
         
         
 
-        t0 = time.time()
-        print(f"Took {t1 - t0:.3f}s to initialize")
-        print("Adding vectors to Pinecone instance...")
-        batch_size = 128
+    #     t0 = time.time()
+    #     print(f"Took {t1 - t0:.3f}s to initialize")
+    #     print("Adding vectors to Pinecone instance...")
+    #     batch_size = 128
 
-        for i in tqdm.tqdm(range(0, len(corpus), batch_size)):
-            # find end of batch
-            i_end = min(i + batch_size, len(corpus))
-            # create IDs batch
-            ids = [str(x) for x in range(i, i_end)]
-            # create metadata batch
-            metadatas = [{'text': text} for text in corpus[i:i_end]]
-            # create embeddings
-            embeddings = model.encode(corpus[i:i_end]).tolist()
-            # create records list for upsert
-            records = zip(ids, embeddings, metadatas)
-            # upsert to Pinecone
-            index.upsert(vectors=records)
+    #     for i in tqdm.tqdm(range(0, len(corpus), batch_size)):
+    #         # find end of batch
+    #         i_end = min(i + batch_size, len(corpus))
+    #         # create IDs batch
+    #         ids = [str(x) for x in range(i, i_end)]
+    #         # create metadata batch
+    #         metadatas = [{'text': text} for text in corpus[i:i_end]]
+    #         # create embeddings
+    #         embeddings = model.encode(corpus[i:i_end]).tolist()
+    #         # create records list for upsert
+    #         records = zip(ids, embeddings, metadatas)
+    #         # upsert to Pinecone
+    #         index.upsert(vectors=records)
 
-        t1 = time.time()
-        print(f"Took {t1 - t0:.3f}s to add vectors.")
-        indexing_times.append(
-            {
-                "num_tokens": token_count,
-                "lib": "Pinecone",
-                "num_embeddings": len(corpus),
-                "indexing_time": t1 - t0,
-            }
-        )
+    #     t1 = time.time()
+    #     print(f"Took {t1 - t0:.3f}s to add vectors.")
+    #     indexing_times.append(
+    #         {
+    #             "num_tokens": token_count,
+    #             "lib": "Pinecone",
+    #             "num_embeddings": len(corpus),
+    #             "indexing_time": t1 - t0,
+    #         }
+    #     )
 
-        # Query Pinecone
-        print("Starting Pinecone trials...")
-        times = []
-        for query_text in queries:
-            # create the query vector
-            query_vector = model.encode([query_text]).tolist()[0]
-            # now query
-            t0 = time.time()
-            try:
-                xq = index.query(vector=query_vector, top_k=top_k, include_metadata=True)
-            except Exception as e:
-                print("Exception: ", e)
-                t0 = time.time()
-                continue
-            t1 = time.time()
-            times.append(t1 - t0)
+    #     # Query Pinecone
+    #     print("Starting Pinecone trials...")
+    #     times = []
+    #     for query_text in queries:
+    #         # create the query vector
+    #         query_vector = model.encode([query_text]).tolist()[0]
+    #         # now query
+    #         t0 = time.time()
+    #         try:
+    #             xq = index.query(vector=query_vector, top_k=top_k, include_metadata=True)
+    #         except Exception as e:
+    #             print("Exception: ", e)
+    #             t0 = time.time()
+    #             continue
+    #         t1 = time.time()
+    #         times.append(t1 - t0)
 
-            print(f"Top {top_k} results for '{query_text}'")
-            for result in xq['matches']:
-                print(f"{round(result['score'], 2)}: {result['metadata']['text'][:100]}...")
+    #         print(f"Top {top_k} results for '{query_text}'")
+    #         for result in xq['matches']:
+    #             print(f"{round(result['score'], 2)}: {result['metadata']['text'][:100]}...")
 
-        results.append(
-            {
-                "num_embeddings": len(corpus),
-                "lib": "Pinecone",
-                "k": top_k,
-                "avg_time": np.mean(times),
-                "stddev_time": np.std(times),
-            }
-        )
+    #     results.append(
+    #         {
+    #             "num_embeddings": len(corpus),
+    #             "lib": "Pinecone",
+    #             "k": top_k,
+    #             "avg_time": np.mean(times),
+    #             "stddev_time": np.std(times),
+    #         }
+    #     )
 
-        print(json.dumps(results[-1], indent=2))
-        print("Done Pinecone benchmark.")
+    #     print(json.dumps(results[-1], indent=2))
+    #     print("Done Pinecone benchmark.")
 
 
         
