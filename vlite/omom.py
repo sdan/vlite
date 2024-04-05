@@ -118,6 +118,22 @@ class OmomFile:
 
         except FileNotFoundError:
             pass
+    
+    def __repr__(self):
+        output = "OmomFile:\n\n"
+        output += "Header:\n"
+        for key, value in self.header.items():
+            output += f"  {key}: {value}\n"
+        output += "\nEmbeddings:\n"
+        for i, embedding in enumerate(self.embeddings):
+            output += f"  {i}: {embedding}\n"
+        output += "\nContexts:\n"
+        for i, context in enumerate(self.contexts):
+            output += f"  {i}: {context}\n"
+        output += "\nMetadata:\n"
+        for key, value in self.metadata.items():
+            output += f"  {key}: {value}\n"
+        return output
 
     def __enter__(self):
         self.load()

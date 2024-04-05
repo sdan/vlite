@@ -10,6 +10,7 @@ __pycache__
 *.npz
 *.info
 *.index
+*.omom
 
 # # PDF files
 # *.pdf
