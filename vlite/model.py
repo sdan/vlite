@@ -1,5 +1,4 @@
 import os
-import torch
 import llama_cpp
 from huggingface_hub import hf_hub_download
 import tiktoken
