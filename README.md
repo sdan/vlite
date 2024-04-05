@@ -51,3 +51,6 @@ Under the hood, vlite uses llama.cpp for accelerated embedding generation and de
 
 ## License
 AGPL-3.0 License
+
+## Contributing
+Thanks to [Claude](https://claude.ai), [Ray](https://github.com/raydelvecchio), and [Howard](https://github.com/HowieG) for their contributions to vlite. If you'd like to contribute, please open an issue or a pull request.
