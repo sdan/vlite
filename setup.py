@@ -9,17 +9,16 @@ setup(
     packages=find_packages(),
     install_requires=[
         'numpy',
-        'Requests',
-        'setuptools',
-        'torch',
-        'transformers',
-        'uuid',
-        'usearch',
         'PyPDF2',
         'docx2txt',
-        'surya-ocr'
+        'pandas',
+        'Requests',
+        'beautifulsoup4',
+        'llama-cpp-python',
+        'huggingface_hub',
+        'tiktoken'
     ],
-    # extras_require={
-    #     'ocr': ['surya-ocr']
-    # },
+    extras_require={
+        'ocr': ['git+https://github.com/sdan/surya.git']
+    },
 )
