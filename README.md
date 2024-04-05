@@ -3,7 +3,8 @@ A blazing fast, lightweight, and simple vector database made with numpy and llam
 
 [vlite Documentation](docs.md)
 
-![442f7062-ab69-4621-96ca-4ee66df06ffc](https://github.com/sdan/vlite/assets/22898443/fc36481c-f1f6-4973-8461-6aef3a04486d)
+![1a3e85a6-2a3f-4092-beea-8b9d69433e80](https://github.com/sdan/vlite/assets/22898443/ed21a28e-8e2a-449b-b737-4603e4f8d0bd)
+
 
 ## features
 - 🔥 *fastest* vector db retrieval with binary embeddings and int8 rescoring 
