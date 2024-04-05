@@ -105,6 +105,9 @@ class TestVLite(unittest.TestCase):
         if os.path.exists('vlite-unit.npz'):
             print("[+] Removing vlite")
             os.remove('vlite-unit.npz')
+        if os.path.exists('vlite-unit.omom'):
+            print("[+] Removing vlite")
+            os.remove('vlite-unit.omom')
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
