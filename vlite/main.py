@@ -111,7 +111,6 @@ class VLite:
         if metadata:
             filtered_ids = []
             for chunk_id in top_k_ids:
-                item_id = chunk_id.split('_')[0]
                 item_metadata = self.index[chunk_id]['metadata']
                 if all(item_metadata.get(key) == value for key, value in metadata.items()):
                     filtered_ids.append(chunk_id)
@@ -124,22 +123,22 @@ class VLite:
 
 
     def update(self, id, text=None, metadata=None, vector=None):
-        if id in self.index:
-            if text is not None:
-                self.index[id]['text'] = text
-
-            if metadata is not None:
-                self.index[id]['metadata'].update(metadata)
-
-            if vector is not None:
-                self.index[id]['vector'] = vector
-
+        chunk_ids = [chunk_id for chunk_id in self.index if chunk_id.startswith(f"{id}_")]
+        if chunk_ids:
+            for chunk_id in chunk_ids:
+                if text is not None:
+                    self.index[chunk_id]['text'] = text
+                if metadata is not None:
+                    self.index[chunk_id]['metadata'].update(metadata)
+                if vector is not None:
+                    self.index[chunk_id]['vector'] = vector
             self.save()
             print(f"Item with ID '{id}' updated successfully.")
             return True
         else:
             print(f"Item with ID '{id}' not found.")
             return False
+
 
     def delete(self, ids):
         if isinstance(ids, str):
@@ -201,17 +200,12 @@ class VLite:
         print(f"Setting attributes for item with ID: {id}")
         chunk_ids = [chunk_id for chunk_id in self.index if chunk_id.startswith(f"{id}_")]
         if chunk_ids:
-            for chunk_id in chunk_ids:
-                if text is not None:
-                    self.index[chunk_id]['text'] = text
-                if metadata is not None:
-                    self.index[chunk_id]['metadata'].update(metadata)
-                if vector is not None:
-                    self.index[chunk_id]['vector'] = vector
-            self.save()
+            self.update(id, text, metadata, vector)
         else:
-            print(f"Item with ID {id} not found.")
+            self.add(text, metadata=metadata, item_id=id)
+            print(f"Item with ID '{id}' created successfully.")
             
+                
 
     def count(self):
         return len(self.index)
