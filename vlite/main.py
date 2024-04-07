@@ -30,8 +30,7 @@ class VLite:
         except FileNotFoundError:
             print(f"Collection file {self.collection} not found. Initializing empty attributes.")
 
-    def add(self, data, metadata=None, need_chunks=True, fast=True):
-        print("Adding text to the collection...", self.collection)
+    def add(self, data, metadata=None, item_id=None, need_chunks=True, fast=True):
         data = [data] if not isinstance(data, list) else data
         results = []
         all_chunks = []
@@ -42,14 +41,14 @@ class VLite:
             if isinstance(item, dict):
                 text_content = item['text']
                 item_metadata = item.get('metadata', {})
-                item_id = item_metadata.get('id', str(uuid4()))
             else:
                 text_content = item
                 item_metadata = {}
+
+            if item_id is None:
                 item_id = str(uuid4())
 
             item_metadata.update(metadata or {})
-            item_metadata['id'] = item_id
 
             if need_chunks:
                 chunks = chop_and_chunk(text_content, fast=fast)
@@ -63,8 +62,8 @@ class VLite:
 
         encoded_data = self.model.embed(all_chunks, device=self.device)
         binary_encoded_data = self.model.quantize(encoded_data, precision="binary")
-        
-        for idx, (chunk, binary_vector, metadata, item_id) in enumerate(zip(all_chunks, binary_encoded_data, all_metadata, all_ids)):
+
+        for idx, (chunk, binary_vector, metadata) in enumerate(zip(all_chunks, binary_encoded_data, all_metadata)):
             chunk_id = f"{item_id}_{idx}"
             self.index[chunk_id] = {
                 'text': chunk,
@@ -72,8 +71,8 @@ class VLite:
                 'binary_vector': binary_vector.tolist()
             }
 
-            if item_id not in [result[0] for result in results]:
-                results.append((item_id, binary_encoded_data, metadata))
+        if item_id not in [result[0] for result in results]:
+            results.append((item_id, binary_encoded_data, metadata))
 
         self.save()
         print("Text added successfully.")
@@ -111,10 +110,11 @@ class VLite:
         # Apply metadata filter on the retrieved top_k items
         if metadata:
             filtered_ids = []
-            for item_id in top_k_ids:
-                item_metadata = self.index[item_id]['metadata']
+            for chunk_id in top_k_ids:
+                item_id = chunk_id.split('_')[0]
+                item_metadata = self.index[chunk_id]['metadata']
                 if all(item_metadata.get(key) == value for key, value in metadata.items()):
-                    filtered_ids.append(item_id)
+                    filtered_ids.append(chunk_id)
             top_k_ids = filtered_ids[:top_k]
 
         # Get the similarity scores for the top_k items
@@ -122,24 +122,7 @@ class VLite:
 
         return list(zip(top_k_ids, top_k_scores))
 
-    def delete(self, ids):
-        if isinstance(ids, str):
-            ids = [ids]
 
-        deleted_count = 0
-        for id in ids:
-            if id in self.index:
-                del self.index[id]
-                deleted_count += 1
-
-        if deleted_count > 0:
-            self.save()
-            print(f"Deleted {deleted_count} item(s) from the collection.")
-        else:
-            print("No items found with the specified IDs.")
-
-        return deleted_count
-    
     def update(self, id, text=None, metadata=None, vector=None):
         if id in self.index:
             if text is not None:
@@ -157,13 +140,57 @@ class VLite:
         else:
             print(f"Item with ID '{id}' not found.")
             return False
+
+    def delete(self, ids):
+        if isinstance(ids, str):
+            ids = [ids]
+
+        deleted_count = 0
+        for id in ids:
+            chunk_ids = [chunk_id for chunk_id in self.index if chunk_id.startswith(f"{id}_")]
+            for chunk_id in chunk_ids:
+                if chunk_id in self.index:
+                    del self.index[chunk_id]
+                    deleted_count += 1
+
+        if deleted_count > 0:
+            self.save()
+            print(f"Deleted {deleted_count} item(s) from the collection.")
+        else:
+            print("No items found with the specified IDs.")
+
+        return deleted_count
+
     
+
     def get(self, ids=None, where=None):
         if ids is not None:
-            id_set = set(ids)
-            items = [(self.index[id]['text'], self.index[id]['metadata']) for id in self.index if id in id_set]
+            if isinstance(ids, str):
+                ids = [ids]
+            items = []
+            for id in ids:
+                item_chunks = []
+                item_metadata = {}
+                for chunk_id, chunk_data in self.index.items():
+                    if chunk_id.startswith(f"{id}_"):
+                        item_chunks.append(chunk_data['text'])
+                        item_metadata.update(chunk_data['metadata'])
+                if item_chunks:
+                    item_text = ' '.join(item_chunks)
+                    items.append((item_text, item_metadata))
         else:
-            items = [(self.index[id]['text'], self.index[id]['metadata']) for id in self.index]
+            items = []
+            item_dict = {}
+            for chunk_id, chunk_data in self.index.items():
+                item_id = chunk_id.split('_')[0]
+                if item_id not in item_dict:
+                    item_dict[item_id] = {'chunks': [], 'metadata': {}}
+                item_dict[item_id]['chunks'].append(chunk_data['text'])
+                item_dict[item_id]['metadata'].update(chunk_data['metadata'])
+            for item_id, item_data in item_dict.items():
+                item_text = ' '.join(item_data['chunks'])
+                item_metadata = item_data['metadata']
+                items.append((item_text, item_metadata))
 
         if where is not None:
             items = [item for item in items if all(item[1].get(key) == value for key, value in where.items())]
@@ -172,16 +199,19 @@ class VLite:
 
     def set(self, id, text=None, metadata=None, vector=None):
         print(f"Setting attributes for item with ID: {id}")
-        if id in self.index:
-            if text is not None:
-                self.index[id]['text'] = text
-            if metadata is not None:
-                self.index[id]['metadata'].update(metadata)
-            if vector is not None:
-                self.index[id]['vector'] = vector
+        chunk_ids = [chunk_id for chunk_id in self.index if chunk_id.startswith(f"{id}_")]
+        if chunk_ids:
+            for chunk_id in chunk_ids:
+                if text is not None:
+                    self.index[chunk_id]['text'] = text
+                if metadata is not None:
+                    self.index[chunk_id]['metadata'].update(metadata)
+                if vector is not None:
+                    self.index[chunk_id]['vector'] = vector
             self.save()
         else:
             print(f"Item with ID {id} not found.")
+            
 
     def count(self):
         return len(self.index)
