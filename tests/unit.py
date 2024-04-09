@@ -62,7 +62,7 @@ class TestVLite(unittest.TestCase):
         ]
         start_time = time.time()
         for query in queries:
-            results = self.vlite.retrieve(query, top_k=3)
+            results = self.vlite.retrieve(query, top_k=3, return_scores=True)
             print(f"Query: {query}")
             print(f"Top 3 results:")
             for text, similarity, metadata in results[:3]:
