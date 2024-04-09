@@ -78,24 +78,27 @@ class VLite:
         print("Text added successfully.")
         return results
 
-    def retrieve(self, text=None, top_k=5, metadata=None):
+    def retrieve(self, text=None, top_k=5, metadata=None, return_scores=False):
         print("Retrieving similar texts...")
         if text:
             print(f"Retrieving top {top_k} similar texts for query: {text}")
             query_chunks = chop_and_chunk(text, fast=True)
             query_vectors = self.model.embed(query_chunks, device=self.device)
             query_binary_vectors = self.model.quantize(query_vectors, precision="binary")
-
+            
             results = []
             for query_binary_vector in query_binary_vectors:
                 chunk_results = self.search(query_binary_vector, top_k, metadata)
                 results.extend(chunk_results)
-
+            
             results.sort(key=lambda x: x[1], reverse=True)
             results = results[:top_k]
-
+            
             print("Retrieval completed.")
-            return [(self.index[idx]['text'], score, self.index[idx]['metadata']) for idx, score in results]
+            if return_scores:
+                return [(self.index[idx]['text'], score, self.index[idx]['metadata']) for idx, score in results]
+            else:
+                return [(self.index[idx]['text'], self.index[idx]['metadata']) for idx, _ in results]
         
     def search(self, query_binary_vector, top_k, metadata=None):
         # Reshape query_binary_vector to 1D array
