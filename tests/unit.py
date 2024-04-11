@@ -11,36 +11,52 @@ class TestVLite(unittest.TestCase):
 
     def test_add_text(self):
         start_time = time.time()
-        text = "This is a test text. " * 100
+        text = "This is a test text. " * 86
         metadata = {"source": "test", "author": "John Doe", "timestamp": "2023-06-08"}
-        self.vlite.add(text, metadata=metadata, item_id="test_text_1")
+        result = self.vlite.add(text, metadata=metadata, item_id="test_text_1", need_chunks=False)
         end_time = time.time()
         TestVLite.test_times["add_single_text"] = end_time - start_time
-        print(f"Count of texts in the collection: {self.vlite.count()}")
+        count = self.vlite.count()
+        print(f"Count of texts in the collection: {count}")
+        # print("Current dump", self.vlite.dump())
+        self.assertEqual(count, 18)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0], "test_text_1")
+        self.assertEqual(result[0][2], metadata)
 
     def test_add_texts(self):
         start_time = time.time()
         text_512tokens = "underreckoning fleckiness hairstane paradigmatic eligibility sublevate xviii achylia reremice flung outpurl questing gilia unosmotic unsuckled plecopterid excludable phenazine fricando unfledgedness spiritsome incircle desmogenous subclavate redbug semihoral district chrysocolla protocoled servius readings propolises javali dujan stickman attendee hambone obtusipennate tightropes monitorially signaletics diestrums preassigning spriggy yestermorning margaritic tankfuls aseptify linearity hilasmic twinning tokonoma seminormalness cerebrospinant refroid doghouse kochab dacryocystalgia saltbushes newcomer provoker berberid platycoria overpersuaded reoverflow constrainable headless forgivably syzygal purled reese polyglottonic decennary embronze pluripotent equivocally myoblasts thymelaeaceous confervae perverted preanticipate mammalogical desalinizing tackets misappearance subflexuose concludence effluviums runtish gras cuckolded hemostasia coatroom chelidon policizer trichinised frontstall impositions unta outrance scholium fibrochondritis furcates fleaweed housefront helipads hemachate snift appellativeness knobwood superinclination tsures haberdasheries unparliamented reexecution nontangential waddied desolated subdistinctively undiscernibleness swishiest dextral progs koprino bruisingly unloanably bardash uncuckoldedunderreckoning fleckiness hairstane paradigmatic eligibility sublevate xviii achylia reremice flung outpurl questing gilia unosmotic unsuckled plecopterid excludable phenazine fricando unfledgedness spiritsome incircle desmogenous subclavate redbug semihoral district chrysocolla spriggy yestermorning margaritic tankfuls aseptify linearity hilasmic twinning tokonoma seminormalness cerebrospinant refroequivocally myoblasts thymelaeaceous confervae perverted preantiest dextral progs koprino bruisingly unloanably bardash uncuckolded"
         metadata = {"source": "test_512tokens", "category": "random"}
-        self.vlite.add(text_512tokens, metadata=metadata, item_id="test_text_2")
+        result_512 = self.vlite.add(text_512tokens, metadata=metadata, item_id="test_text_2")
 
         with open(os.path.join(os.path.dirname(__file__), "data/text-8192tokens.txt"), "r") as file:
             text_8192tokens = file.read()
         metadata = {"source": "test_8192tokens", "category": "long_text"}
-        self.vlite.add(text_8192tokens, metadata=metadata, item_id="test_text_3")
+        result_8192 = self.vlite.add(text_8192tokens, metadata=metadata, item_id="test_text_3")
 
         end_time = time.time()
         TestVLite.test_times["add_multiple_texts"] = end_time - start_time
-        print(f"Count of texts in the collection: {self.vlite.count()}")
+        count = self.vlite.count()
+        print(f"Count of texts in the collection: {count}")
+        self.assertEqual(count, 34)
+        self.assertEqual(len(result_512), 1)
+        self.assertEqual(len(result_8192), 1)
+        self.assertEqual(result_512[0][0], "test_text_2")
+        self.assertEqual(result_8192[0][0], "test_text_3")
 
     def test_add_pdf(self):
         print(f"[test_add_pdf] Count of chunks in the collection: {self.vlite.count()}")
         start_time = time.time()
-        self.vlite.add(process_pdf(os.path.join(os.path.dirname(__file__), 'data/attention.pdf')), need_chunks=False, item_id="test_pdf_1")
+        result = self.vlite.add(process_pdf(os.path.join(os.path.dirname(__file__), 'data/attention.pdf')), need_chunks=False, item_id="test_pdf_1")
         end_time = time.time()
         TestVLite.test_times["add_pdf"] = end_time - start_time
-        print(f"[test_add_pdf] after Count of chunks in the collection: {self.vlite.count()}")
+        count = self.vlite.count()
+        print(f"[test_add_pdf] after Count of chunks in the collection: {count}")
         print(f"Time to add 71067 tokens: {TestVLite.test_times['add_pdf']} seconds")
+        self.assertGreater(count, 3)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0], "test_pdf_1")
 
     def test_retrieve(self):
         queries = [
@@ -70,6 +86,10 @@ class TestVLite(unittest.TestCase):
                 print(f"Similarity: {similarity}")
                 print(f"Metadata: {metadata}")
                 print("---")
+            self.assertEqual(len(results), 3)
+            self.assertIsInstance(results[0][0], str)
+            self.assertIsInstance(results[0][1], float)
+            self.assertIsInstance(results[0][2], dict)
         end_time = time.time()
         TestVLite.test_times["retrieve"] = end_time - start_time
 
@@ -77,18 +97,21 @@ class TestVLite(unittest.TestCase):
         self.vlite.add("This is a test text.", item_id="test_delete_1")
         self.vlite.add("Another test text.", item_id="test_delete_2")
         start_time = time.time()
-        self.vlite.delete(['test_delete_1', 'test_delete_2'])
+        deleted_count = self.vlite.delete(['test_delete_1', 'test_delete_2'])
         end_time = time.time()
         TestVLite.test_times["delete"] = end_time - start_time
-        print(f"Count of texts in the collection: {self.vlite.count()}")
+        self.assertEqual(deleted_count, 2)
 
     def test_update(self):
         self.vlite.add("This is a test text.", item_id="test_update_1")
         start_time = time.time()
-        self.vlite.update("test_update_1", text="This is an updated text.", metadata={"updated": True})
+        updated = self.vlite.update("test_update_1", text="This is an updated text.", metadata={"updated": True})
         end_time = time.time()
         TestVLite.test_times["update"] = end_time - start_time
-        print(f"Count of texts in the collection: {self.vlite.count()}")
+        count = self.vlite.count()
+        print(f"Count of texts in the collection: {count}")
+        self.assertTrue(updated)
+        self.assertEqual(count, 6)
 
     def test_get(self):
         self.vlite.add("Text 1", item_id="test_get_1", metadata={"category": "A"})
@@ -98,9 +121,15 @@ class TestVLite(unittest.TestCase):
         start_time = time.time()
         items = self.vlite.get(ids=["test_get_1", "test_get_3"])
         print(f"Items with IDs 'test_get_1' and 'test_get_3': {items}")
+        self.assertEqual(len(items), 2)
+        self.assertEqual(items[0][0], "Text 1")
+        self.assertEqual(items[1][0], "Text 3")
 
         items = self.vlite.get(where={"category": "A"})
         print(f"Items with category 'A': {items}")
+        self.assertEqual(len(items), 2)
+        self.assertEqual(items[0][1]["category"], "A")
+        self.assertEqual(items[1][1]["category"], "A")
         end_time = time.time()
         TestVLite.test_times["get"] = end_time - start_time
 
@@ -113,6 +142,9 @@ class TestVLite(unittest.TestCase):
 
         items = self.vlite.get(ids=["test_set_1"])
         print(f"Updated item: {items}")
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0][0], "Updated text")
+        self.assertEqual(items[0][1]["updated"], True)
 
     def test_count(self):
         start_time = time.time()
@@ -124,7 +156,9 @@ class TestVLite(unittest.TestCase):
     def test_clear(self):
         start_time = time.time()
         self.vlite.clear()
-        print(f"Count of items after clearing the collection: {self.vlite.count()}")
+        count = self.vlite.count()
+        print(f"Count of items after clearing the collection: {count}")
+        self.assertEqual(count, 0)
         end_time = time.time()
         TestVLite.test_times["clear"] = end_time - start_time
 
