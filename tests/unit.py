@@ -133,12 +133,6 @@ class TestVLite(unittest.TestCase):
         print("\nTest times:")
         for test_name, test_time in cls.test_times.items():
             print(f"{test_name}: {test_time:.4f} seconds")
-        if os.path.exists('vlite-unit.npz'):
-            print("[+] Removing vlite")
-            os.remove('vlite-unit.npz')
-        if os.path.exists('vlite-unit.ctx'):
-            print("[+] Removing vlite")
-            os.remove('vlite-unit.ctx')
         if os.path.exists('contexts/vlite-unit.ctx'):
             print("[+] Removing vlite ctx")
             os.remove('contexts/vlite-unit.ctx')

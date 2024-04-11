@@ -25,9 +25,9 @@ class VLite:
             print("Number of metadata: ", len(ctx_file.metadata))
             self.index = {
                 chunk_id: {
-                    'text': ctx_file.contexts[idx],
+                    'text': ctx_file.contexts[idx] if idx < len(ctx_file.contexts) else "",
                     'metadata': ctx_file.metadata.get(chunk_id, {}),
-                    'binary_vector': np.array(ctx_file.embeddings[idx])
+                    'binary_vector': np.array(ctx_file.embeddings[idx]) if idx < len(ctx_file.embeddings) else np.zeros(self.model.embedding_size)
                 }
                 for idx, chunk_id in enumerate(ctx_file.metadata.keys())
             }
@@ -230,7 +230,8 @@ class VLite:
             for chunk_id, chunk_data in self.index.items():
                 ctx_file.add_embedding(chunk_data['binary_vector'])
                 ctx_file.add_context(chunk_data['text'])
-                ctx_file.add_metadata(chunk_id, chunk_data['metadata'])
+                if 'metadata' in chunk_data:
+                    ctx_file.add_metadata(chunk_id, chunk_data['metadata'])
         print("Collection saved successfully.")
 
     def clear(self):
