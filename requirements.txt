@@ -7,3 +7,4 @@ beautifulsoup4
 llama-cpp-python
 huggingface_hub
 tiktoken
+onnxruntime==1.17.1
