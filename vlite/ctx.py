@@ -5,14 +5,14 @@ from enum import Enum
 from typing import List, Dict, Union
 import numpy as np
 
-class OmomSectionType(Enum):
+class CtxSectionType(Enum):
     HEADER = 0
     EMBEDDINGS = 1
     CONTEXTS = 2
     METADATA = 3
 
-class OmomFile:
-    MAGIC_NUMBER = b"OMOM"
+class CtxFile:
+    MAGIC_NUMBER = b"CTXF"
     VERSION = 1
 
     def __init__(self, file_path):
@@ -43,12 +43,14 @@ class OmomFile:
         self.metadata[key] = value
 
     def save(self):
+        print("Number of embeddings to save: ", len(self.embeddings))
+        print("Number of metadata keys to save: ", len(self.metadata))
         with open(self.file_path, "wb") as file:
             file.write(self.MAGIC_NUMBER)
             file.write(struct.pack("<I", self.VERSION))
 
             header_json = json.dumps(self.header).encode("utf-8")
-            file.write(struct.pack("<II", OmomSectionType.HEADER.value, len(header_json)))
+            file.write(struct.pack("<II", CtxSectionType.HEADER.value, len(header_json)))
             file.write(header_json)
 
             if self.embeddings:
@@ -56,18 +58,20 @@ class OmomFile:
                     struct.pack(f"<{len(emb)}f", *[float(x) if not np.isnan(x) else 0.0 for x in emb])
                     for emb in self.embeddings
                 )
-                file.write(struct.pack("<II", OmomSectionType.EMBEDDINGS.value, len(embeddings_data)))
+                file.write(struct.pack("<II", CtxSectionType.EMBEDDINGS.value, len(embeddings_data)))
                 file.write(embeddings_data)
 
             contexts_data = b"".join(struct.pack("<I", len(context.encode("utf-8"))) + context.encode("utf-8") for context in self.contexts)
-            file.write(struct.pack("<II", OmomSectionType.CONTEXTS.value, len(contexts_data)))
+            file.write(struct.pack("<II", CtxSectionType.CONTEXTS.value, len(contexts_data)))
             file.write(contexts_data)
 
             metadata_json = json.dumps(self.metadata).encode("utf-8")
-            file.write(struct.pack("<II", OmomSectionType.METADATA.value, len(metadata_json)))
+            file.write(struct.pack("<II", CtxSectionType.METADATA.value, len(metadata_json)))
             file.write(metadata_json)
         
     def load(self):
+        print("Number of embeddings loaded: ", len(self.embeddings))
+        print("Number of metadata keys loaded: ", len(self.metadata))
         try:
             with open(self.file_path, "rb") as file:
                 # Read and verify header
@@ -86,10 +90,10 @@ class OmomFile:
                         break
                     section_type, section_length = struct.unpack("<II", section_header)
 
-                    if section_type == OmomSectionType.HEADER.value:
+                    if section_type == CtxSectionType.HEADER.value:
                         header_json = file.read(section_length).decode("utf-8")
                         self.header = json.loads(header_json)
-                    elif section_type == OmomSectionType.EMBEDDINGS.value:
+                    elif section_type == CtxSectionType.EMBEDDINGS.value:
                         embeddings_data = file.read(section_length)
                         if embeddings_data:
                             embedding_size = len(embeddings_data) // 4
@@ -97,7 +101,7 @@ class OmomFile:
                                 list(struct.unpack_from(f"<{embedding_size // len(self.embeddings)}f", embeddings_data, i * embedding_size))
                                 for i in range(len(self.embeddings))
                             ] if self.embeddings else [list(struct.unpack_from(f"<{embedding_size}f", embeddings_data))]
-                    elif section_type == OmomSectionType.CONTEXTS.value:
+                    elif section_type == CtxSectionType.CONTEXTS.value:
                         contexts_data = file.read(section_length)
                         self.contexts = []
                         offset = 0
@@ -110,7 +114,7 @@ class OmomFile:
                             except UnicodeDecodeError as e:
                                 print(f"Error decoding context: {e}")
                             offset += context_length
-                    elif section_type == OmomSectionType.METADATA.value:
+                    elif section_type == CtxSectionType.METADATA.value:
                         metadata_json = file.read(section_length).decode("utf-8")
                         self.metadata = json.loads(metadata_json)
                     else:
@@ -120,7 +124,7 @@ class OmomFile:
             pass
     
     def __repr__(self):
-        output = "OmomFile:\n\n"
+        output = "CtxFile:\n\n"
         output += "Header:\n"
         for key, value in self.header.items():
             output += f"  {key}: {value}\n"
@@ -142,22 +146,22 @@ class OmomFile:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.save()
     
-class Omom:
-    def __init__(self, directory="omnoms"):
+class Ctx:
+    def __init__(self, directory="contexts"):
         self.directory = directory
         if not os.path.exists(directory):
             os.makedirs(directory)
 
     def get(self, user):
-        return os.path.join(self.directory, f"{user}.omom")
+        return os.path.join(self.directory, f"{user}.ctx")
 
-    def create(self, user: str) -> OmomFile:
+    def create(self, user: str) -> CtxFile:
         file_path = self.get(user)
-        return OmomFile(file_path)
+        return CtxFile(file_path)
 
-    def read(self, user_id: str) -> OmomFile:
+    def read(self, user_id: str) -> CtxFile:
         file_path = self.get(user_id)
-        return OmomFile(file_path)
+        return CtxFile(file_path)
 
     def delete(self, user_id: str):
         file_path = self.get(user_id)

@@ -3,7 +3,7 @@ from uuid import uuid4
 from .model import EmbeddingModel
 from .utils import chop_and_chunk
 import datetime
-from .omom import Omom
+from .ctx import Ctx
 
 class VLite:
     def __init__(self, collection=None, device='cpu', model_name='mixedbread-ai/mxbai-embed-large-v1'):
@@ -14,19 +14,23 @@ class VLite:
         self.device = device
         self.model = EmbeddingModel(model_name) if model_name else EmbeddingModel()
         
-        self.omom = Omom()
+        self.ctx = Ctx()
         self.index = {}
 
         try:
-            with self.omom.read(collection) as omom_file:
-                self.index = {
-                    chunk_id: {
-                        'text': chunk_data['text'],
-                        'metadata': chunk_data['metadata'],
-                        'binary_vector': np.array(chunk_data['binary_vector'])
-                    }
-                    for chunk_id, chunk_data in omom_file.metadata.items()
+            ctx_file = self.ctx.read(collection)
+            ctx_file.load()
+            # debug print
+            print("Number of embeddings: ", len(ctx_file.embeddings))
+            print("Number of metadata: ", len(ctx_file.metadata))
+            self.index = {
+                chunk_id: {
+                    'text': ctx_file.contexts[idx],
+                    'metadata': ctx_file.metadata.get(chunk_id, {}),
+                    'binary_vector': np.array(ctx_file.embeddings[idx])
                 }
+                for idx, chunk_id in enumerate(ctx_file.metadata.keys())
+            }
         except FileNotFoundError:
             print(f"Collection file {self.collection} not found. Initializing empty attributes.")
 
@@ -216,23 +220,23 @@ class VLite:
 
     def save(self):
         print(f"Saving collection to {self.collection}")
-        with self.omom.create(self.collection) as omom_file:
-            omom_file.set_header(
+        with self.ctx.create(self.collection) as ctx_file:
+            ctx_file.set_header(
                 embedding_model="mixedbread-ai/mxbai-embed-large-v1",
                 embedding_size=self.model.model_metadata.get('bert.embedding_length', 1024),
                 embedding_dtype=self.model.embedding_dtype,
                 context_length=self.model.model_metadata.get('bert.context_length', 512)
             )
             for chunk_id, chunk_data in self.index.items():
-                omom_file.add_embedding(chunk_data['binary_vector'])
-                omom_file.add_context(chunk_data['text'])
-                omom_file.add_metadata(chunk_id, chunk_data['metadata'])
+                ctx_file.add_embedding(chunk_data['binary_vector'])
+                ctx_file.add_context(chunk_data['text'])
+                ctx_file.add_metadata(chunk_id, chunk_data['metadata'])
         print("Collection saved successfully.")
 
     def clear(self):
         print("Clearing the collection...")
         self.index = {}
-        self.omom.delete(self.collection)
+        self.ctx.delete(self.collection)
         print("Collection cleared.")
     
     def info(self):

@@ -29,7 +29,7 @@ def chop_and_chunk(text, max_seq_length=512, fast=False):
     enc = tiktoken.get_encoding("cl100k_base")
     chunks = []
     print(f"Length of text: {len(text)}")
-    print(f"Original text: {text}")
+    # print(f"Original text: {text}")
     for t in text:
         if fast:
             chunk_size = max_seq_length * 4
@@ -43,8 +43,8 @@ def chop_and_chunk(text, max_seq_length=512, fast=False):
                 for i in range(0, num_tokens, max_seq_length):
                     chunk = enc.decode(token_ids[i:i + max_seq_length])
                     chunks.append(chunk)
-    print("Chopped text into these chunks:", chunks)
-    print(f"Chopped text into {len(chunks)} chunks.")
+    # print("Chopped text into these chunks:", chunks)
+    # print(f"Chopped text into {len(chunks)} chunks.")
     return chunks
 
 def process_pdf(file_path: str, chunk_size: int = 512, use_ocr: bool = False, langs: List[str] = None) -> List[str]:
