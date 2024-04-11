@@ -7,6 +7,8 @@ import requests
 from bs4 import BeautifulSoup
 from typing import List
 import tiktoken
+import numpy as np
+import itertools
 
 try:
     from surya.ocr import run_ocr
@@ -192,8 +194,8 @@ def process_file(file_path: str, chunk_size: int = 512) -> List[str]:
         return process_docx(file_path, chunk_size)
     elif extension == '.csv':
         return process_csv(file_path, chunk_size)
-    elif extension == '.pptx':
-        return process_pptx(file_path, chunk_size)
+    # elif extension == '.pptx':
+    #     return process_pptx(file_path, chunk_size)
     else:
         raise ValueError(f"Unsupported file type: {extension}")
     

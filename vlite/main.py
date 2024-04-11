@@ -218,7 +218,7 @@ class VLite:
         print(f"Saving collection to {self.collection}")
         with self.omom.create(self.collection) as omom_file:
             omom_file.set_header(
-                embedding_model=self.model.model_metadata['general.name'],
+                embedding_model="mixedbread-ai/mxbai-embed-large-v1",
                 embedding_size=self.model.model_metadata.get('bert.embedding_length', 1024),
                 embedding_dtype=self.model.embedding_dtype,
                 context_length=self.model.model_metadata.get('bert.context_length', 512)
