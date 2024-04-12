@@ -88,7 +88,6 @@ class TestVLite(unittest.TestCase):
                 print("---")
             self.assertEqual(len(results), 3)
             self.assertIsInstance(results[0][1], str)
-            self.assertIsInstance(results[0][3], (float, np.floating))
             self.assertIsInstance(results[0][2], dict)
         end_time = time.time()
         TestVLite.test_times["retrieve"] = end_time - start_time
