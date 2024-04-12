@@ -100,10 +100,10 @@ class VLite:
             
             print("Retrieval completed.")
             if return_scores:
-                return [(self.index[idx]['text'], score, self.index[idx]['metadata']) for idx, score in results]
+                return [(idx, self.index[idx]['text'], self.index[idx]['metadata'], score) for idx, score in results]
             else:
-                return [(self.index[idx]['text'], self.index[idx]['metadata']) for idx, _ in results]
-        
+                return [(idx, self.index[idx]['text'], self.index[idx]['metadata']) for idx, _ in results]
+
     def search(self, query_binary_vector, top_k, metadata=None):
         # Reshape query_binary_vector to 1D array
         query_binary_vector = query_binary_vector.reshape(-1)
@@ -183,23 +183,17 @@ class VLite:
                         item_metadata.update(chunk_data['metadata'])
                 if item_chunks:
                     item_text = ' '.join(item_chunks)
-                    items.append((item_text, item_metadata))
+                    items.append((id, item_text, item_metadata))
         else:
             items = []
-            item_dict = {}
             for chunk_id, chunk_data in self.index.items():
                 item_id = chunk_id.split('_')[0]
-                if item_id not in item_dict:
-                    item_dict[item_id] = {'chunks': [], 'metadata': {}}
-                item_dict[item_id]['chunks'].append(chunk_data['text'])
-                item_dict[item_id]['metadata'].update(chunk_data['metadata'])
-            for item_id, item_data in item_dict.items():
-                item_text = ' '.join(item_data['chunks'])
-                item_metadata = item_data['metadata']
-                items.append((item_text, item_metadata))
+                item_text = chunk_data['text']
+                item_metadata = chunk_data['metadata']
+                items.append((item_id, item_text, item_metadata))
 
         if where is not None:
-            items = [item for item in items if all(item[1].get(key) == value for key, value in where.items())]
+            items = [item for item in items if all(item[2].get(key) == value for key, value in where.items())]
 
         return items
 
