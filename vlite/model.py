@@ -61,14 +61,23 @@ class EmbeddingModel:
             tokens += len(encoded.ids)
         return tokens
 
-    def quantize(self, embeddings, precision="binary"):
-        embeddings = np.array(embeddings)
+    def quantize(self, embeddings, precision="binary", ranges=None, calibration_embeddings=None):
+        if isinstance(embeddings, list):
+            embeddings = np.array(embeddings)
+
         if precision == "binary":
-            return np.packbits(embeddings > 0).reshape(embeddings.shape[0], -1)
+            # Quantize embeddings to binary by thresholding at 0
+            quantized_embeddings = (embeddings > 0).astype(np.uint8)
         elif precision == "int8":
-            return ((embeddings - np.min(embeddings, axis=0)) / (np.max(embeddings, axis=0) - np.min(embeddings, axis=0)) * 255).astype(np.uint8)
+            if ranges is None:
+                # Compute ranges from calibration embeddings if not provided
+                if calibration_embeddings is None:
+                    calibration_embeddings = embeddings
+                ranges = np.stack([np.min(calibration_embeddings, axis=0), np.max(calibration_embeddings, axis=0)])
+
+            # Quantize embeddings to int8 using the computed ranges
+            quantized_embeddings = np.clip(np.round((embeddings - ranges[0]) / (ranges[1] - ranges[0]) * 255), 0, 255).astype(np.int8)
         else:
             raise ValueError(f"Unsupported precision: {precision}")
 
-    def rescore(self, query_vector, vectors):
-        return np.dot(query_vector, vectors.T).flatten()
+        return quantized_embeddings

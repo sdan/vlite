@@ -27,7 +27,8 @@ class VLite:
                 chunk_id: {
                     'text': ctx_file.contexts[idx] if idx < len(ctx_file.contexts) else "",
                     'metadata': ctx_file.metadata.get(chunk_id, {}),
-                    'binary_vector': np.array(ctx_file.embeddings[idx]) if idx < len(ctx_file.embeddings) else np.zeros(self.model.embedding_size)
+                    'binary_vector': np.frombuffer(ctx_file.embeddings[idx], dtype=np.uint8) if idx < len(ctx_file.embeddings) else np.zeros(self.model.embedding_size // 8, dtype=np.uint8),
+                    'int8_vector': np.frombuffer(ctx_file.int8_embeddings[idx], dtype=np.int8) if idx < len(ctx_file.int8_embeddings) else np.zeros(self.model.embedding_size, dtype=np.int8)
                 }
                 for idx, chunk_id in enumerate(ctx_file.metadata.keys())
             }
@@ -66,13 +67,14 @@ class VLite:
 
         encoded_data = self.model.embed(all_chunks, device=self.device)
         binary_encoded_data = self.model.quantize(encoded_data, precision="binary")
-
-        for idx, (chunk, binary_vector, metadata) in enumerate(zip(all_chunks, binary_encoded_data, all_metadata)):
+        int8_encoded_data = self.model.quantize(encoded_data, precision="int8")
+        for idx, (chunk, binary_vector, int8_vector, metadata) in enumerate(zip(all_chunks, binary_encoded_data, int8_encoded_data, all_metadata)):
             chunk_id = f"{item_id}_{idx}"
             self.index[chunk_id] = {
                 'text': chunk,
                 'metadata': metadata,
-                'binary_vector': binary_vector.tolist()
+                'binary_vector': binary_vector.tobytes(),
+                'int8_vector': int8_vector.tobytes()
             }
 
         if item_id not in [result[0] for result in results]:
@@ -82,53 +84,70 @@ class VLite:
         print("Text added successfully.")
         return results
 
-    def retrieve(self, text=None, top_k=5, metadata=None, return_scores=False):
-        print("Retrieving similar texts...")
-        if text:
-            print(f"Retrieving top {top_k} similar texts for query: {text}")
-            query_chunks = chop_and_chunk(text, fast=True)
-            query_vectors = self.model.embed(query_chunks, device=self.device)
-            query_binary_vectors = self.model.quantize(query_vectors, precision="binary")
-            
-            results = []
-            for query_binary_vector in query_binary_vectors:
-                chunk_results = self.search(query_binary_vector, top_k, metadata)
-                results.extend(chunk_results)
-            
-            results.sort(key=lambda x: x[1], reverse=True)
-            results = results[:top_k]
-            
-            print("Retrieval completed.")
-            if return_scores:
-                return [(self.index[idx]['text'], score, self.index[idx]['metadata']) for idx, score in results]
-            else:
-                return [(self.index[idx]['text'], self.index[idx]['metadata']) for idx, _ in results]
-        
-    def search(self, query_binary_vector, top_k, metadata=None):
-        # Reshape query_binary_vector to 1D array
-        query_binary_vector = query_binary_vector.reshape(-1)
+    def retrieve(self, text, top_k=5, metadata=None, return_scores=False, rescore_top_k=40):
+        # Embed the query text
+        query_embedding = self.model.embed([text])[0]
 
-        # Perform binary search
-        binary_vectors = np.array([item['binary_vector'] for item in self.index.values()])
-        binary_similarities = np.einsum('i,ji->j', query_binary_vector, binary_vectors)
-        top_k_indices = np.argpartition(binary_similarities, -top_k)[-top_k:]
-        top_k_ids = [list(self.index.keys())[idx] for idx in top_k_indices]
+        # Quantize the query embedding to binary
+        binary_query_embedding = self.model.quantize([query_embedding], precision="binary")[0]
 
-        # Apply metadata filter on the retrieved top_k items
+        # Perform binary search to retrieve top_k * rescore_top_k candidates
+        candidate_ids, candidate_scores = self._binary_search(binary_query_embedding, top_k * rescore_top_k)
+
+        # Rescore the candidates using int8 embeddings
+        rescored_ids, rescored_scores = self._rescore_candidates(query_embedding, candidate_ids, rescore_top_k)
+
+        # Filter results based on metadata if provided
         if metadata:
-            filtered_ids = []
-            for chunk_id in top_k_ids:
-                item_metadata = self.index[chunk_id]['metadata']
-                if all(item_metadata.get(key) == value for key, value in metadata.items()):
-                    filtered_ids.append(chunk_id)
-            top_k_ids = filtered_ids[:top_k]
+            filtered_ids = [idx for idx in rescored_ids if all(self.index[idx]['metadata'].get(k) == v for k, v in metadata.items())][:top_k]
+        else:
+            filtered_ids = rescored_ids[:top_k]
 
-        # Get the similarity scores for the top_k items
-        top_k_scores = binary_similarities[top_k_indices]
+        # Retrieve the text and metadata for the filtered results
+        results = [(idx, self.index[idx]['text'], self.index[idx]['metadata']) for idx in filtered_ids]
 
-        return list(zip(top_k_ids, top_k_scores))
+        if return_scores:
+            scores = [rescored_scores[rescored_ids.index(idx)] for idx in filtered_ids]
+            results = [(idx, text, metadata, score) for (idx, text, metadata), score in zip(results, scores)]
 
+        return results
 
+    def _binary_search(self, query_embedding, top_k):
+        # Retrieve all binary vectors from the index
+        binary_vectors = np.stack([np.frombuffer(chunk_data['binary_vector'], dtype=np.uint8).reshape(-1) for chunk_data in self.index.values()])
+        
+        # Compute Hamming distances between the query embedding and all binary vectors
+        distances = np.sum(query_embedding != binary_vectors, axis=1)
+        
+        # Get the top_k indices and scores (Hamming distances)
+        num_distances = len(distances)
+        if top_k >= num_distances:
+            top_k_indices = np.arange(num_distances)
+        else:
+            top_k_indices = np.argpartition(distances, top_k)[:top_k]
+        top_k_scores = distances[top_k_indices]
+        
+        # Map the indices to chunk IDs
+        top_k_ids = [list(self.index.keys())[idx] for idx in top_k_indices]
+        
+        return top_k_ids, top_k_scores
+
+    def _rescore_candidates(self, query_embedding, candidate_ids, top_k):
+        # Retrieve the int8 embeddings for the candidates
+        candidate_embeddings = np.stack([np.frombuffer(self.index[idx]['int8_vector'], dtype=np.int8) for idx in candidate_ids])
+        
+        # Compute the dot product between the query embedding and candidate int8 embeddings
+        scores = np.dot(query_embedding, candidate_embeddings.T)
+        
+        # Get the top_k indices and scores
+        top_k_indices = np.argsort(-scores)[:top_k]
+        top_k_scores = scores[top_k_indices]
+        
+        # Map the indices to chunk IDs
+        top_k_ids = [candidate_ids[idx] for idx in top_k_indices]
+        
+        return top_k_ids, top_k_scores
+    
     def update(self, id, text=None, metadata=None, vector=None):
         chunk_ids = [chunk_id for chunk_id in self.index if chunk_id.startswith(f"{id}_")]
         if chunk_ids:

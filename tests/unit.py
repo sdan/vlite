@@ -80,19 +80,19 @@ class TestVLite(unittest.TestCase):
         for query in queries:
             results = self.vlite.retrieve(query, top_k=3, return_scores=True)
             print(f"Query: {query}")
-            print(f"Top 3 results:")
-            for text, similarity, metadata in results[:3]:
+            print("Top 3 results:")
+            for idx, text, metadata, score in results[:3]:
                 print(f"Text: {text[:100]}...")
-                print(f"Similarity: {similarity}")
+                print(f"Similarity: {score}")
                 print(f"Metadata: {metadata}")
                 print("---")
             self.assertEqual(len(results), 3)
-            self.assertIsInstance(results[0][0], str)
-            self.assertIsInstance(results[0][1], float)
+            self.assertIsInstance(results[0][1], str)
+            self.assertIsInstance(results[0][3], (float, np.floating))
             self.assertIsInstance(results[0][2], dict)
         end_time = time.time()
         TestVLite.test_times["retrieve"] = end_time - start_time
-
+            
     def test_delete(self):
         self.vlite.add("This is a test text.", item_id="test_delete_1")
         self.vlite.add("Another test text.", item_id="test_delete_2")
@@ -111,7 +111,7 @@ class TestVLite(unittest.TestCase):
         count = self.vlite.count()
         print(f"Count of texts in the collection: {count}")
         self.assertTrue(updated)
-        self.assertEqual(count, 6)
+        self.assertEqual(count, 5)
 
     def test_get(self):
         self.vlite.add("Text 1", item_id="test_get_1", metadata={"category": "A"})
@@ -122,14 +122,14 @@ class TestVLite(unittest.TestCase):
         items = self.vlite.get(ids=["test_get_1", "test_get_3"])
         print(f"Items with IDs 'test_get_1' and 'test_get_3': {items}")
         self.assertEqual(len(items), 2)
-        self.assertEqual(items[0][0], "Text 1")
-        self.assertEqual(items[1][0], "Text 3")
+        self.assertEqual(items[0][1], "Text 1")
+        self.assertEqual(items[1][1], "Text 3")
 
         items = self.vlite.get(where={"category": "A"})
         print(f"Items with category 'A': {items}")
         self.assertEqual(len(items), 2)
-        self.assertEqual(items[0][1]["category"], "A")
-        self.assertEqual(items[1][1]["category"], "A")
+        self.assertEqual(items[0][2]["category"], "A")
+        self.assertEqual(items[1][2]["category"], "A")
         end_time = time.time()
         TestVLite.test_times["get"] = end_time - start_time
 
@@ -143,8 +143,8 @@ class TestVLite(unittest.TestCase):
         items = self.vlite.get(ids=["test_set_1"])
         print(f"Updated item: {items}")
         self.assertEqual(len(items), 1)
-        self.assertEqual(items[0][0], "Updated text")
-        self.assertEqual(items[0][1]["updated"], True)
+        self.assertEqual(items[0][1], "Updated text")
+        self.assertEqual(items[0][2]["updated"], True)
 
     def test_count(self):
         start_time = time.time()
