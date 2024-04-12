@@ -86,16 +86,19 @@ class VLite:
         print("Retrieving similar texts...")
         if text:
             print(f"Retrieving top {top_k} similar texts for query: {text}")
-            query_chunks = chop_and_chunk(text, fast=True)
-            query_vectors = self.model.embed(query_chunks, device=self.device)
+            
+            # Embed and quantize the query text
+            query_vectors = self.model.embed(text, device=self.device)
             query_binary_vectors = self.model.quantize(query_vectors, precision="binary")
             
+            # Perform search on the query binary vectors
             results = []
             for query_binary_vector in query_binary_vectors:
-                chunk_results = self.search(query_binary_vector, top_k, metadata)
+                chunk_results = self.rank_and_filter(query_binary_vector, top_k, metadata)
                 results.extend(chunk_results)
             
-            results.sort(key=lambda x: x[1], reverse=True)
+            # Sort the results by similarity score 
+            results.sort(key=lambda x: x[1])
             results = results[:top_k]
             
             print("Retrieval completed.")
@@ -103,15 +106,12 @@ class VLite:
                 return [(idx, self.index[idx]['text'], self.index[idx]['metadata'], score) for idx, score in results]
             else:
                 return [(idx, self.index[idx]['text'], self.index[idx]['metadata']) for idx, _ in results]
-
-    def search(self, query_binary_vector, top_k, metadata=None):
-        # Reshape query_binary_vector to 1D array
-        query_binary_vector = query_binary_vector.reshape(-1)
-
-        # Perform binary search
-        binary_vectors = np.array([item['binary_vector'] for item in self.index.values()])
-        binary_similarities = np.einsum('i,ji->j', query_binary_vector, binary_vectors)
-        top_k_indices = np.argpartition(binary_similarities, -top_k)[-top_k:]
+        
+    def rank_and_filter(self, query_binary_vector, top_k, metadata=None):
+        query_binary_vector = np.array(query_binary_vector).reshape(-1)
+        
+        corpus_binary_vectors = np.array([item['binary_vector'] for item in self.index.values()])
+        top_k_indices, top_k_scores = self.model.search(query_binary_vector, corpus_binary_vectors, top_k)
         top_k_ids = [list(self.index.keys())[idx] for idx in top_k_indices]
 
         # Apply metadata filter on the retrieved top_k items
@@ -122,9 +122,7 @@ class VLite:
                 if all(item_metadata.get(key) == value for key, value in metadata.items()):
                     filtered_ids.append(chunk_id)
             top_k_ids = filtered_ids[:top_k]
-
-        # Get the similarity scores for the top_k items
-        top_k_scores = binary_similarities[top_k_indices]
+            top_k_scores = top_k_scores[:len(top_k_ids)]
 
         return list(zip(top_k_ids, top_k_scores))
 
