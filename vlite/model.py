@@ -9,6 +9,7 @@ from typing import List
 from sentence_transformers import SentenceTransformer
 import time
 
+USE_ONNX = False
 
 def normalize(v):
     if v.ndim == 1:
@@ -28,16 +29,18 @@ def normalize_onnx(v):
 class EmbeddingModel:
     def __init__(self, model_name="mixedbread-ai/mxbai-embed-large-v1"):
         start_time = time.time()
-        self.model = SentenceTransformer(model_name, device="mps")
         
-        # tokenizer_path = hf_hub_download(repo_id=model_name, filename="tokenizer.json")
-        # model_path = hf_hub_download(repo_id=model_name, filename="onnx/model_fp16.onnx")
+        if USE_ONNX:
+            tokenizer_path = hf_hub_download(repo_id=model_name, filename="tokenizer.json")
+            model_path = hf_hub_download(repo_id=model_name, filename="onnx/model_fp16.onnx")
 
-        # self.tokenizer = Tokenizer.from_file(tokenizer_path)
-        # self.tokenizer.enable_truncation(max_length=512)
-        # self.tokenizer.enable_padding(pad_id=0, pad_token="[PAD]", length=512)
+            self.tokenizer = Tokenizer.from_file(tokenizer_path)
+            self.tokenizer.enable_truncation(max_length=512)
+            self.tokenizer.enable_padding(pad_id=0, pad_token="[PAD]", length=512)
 
-        # self.model = ort.InferenceSession(model_path)
+            self.model = ort.InferenceSession(model_path)
+        else:
+            self.model = SentenceTransformer(model_name, device="mps")
         
         self.model_metadata = {
             "bert.embedding_length": 512,
@@ -53,7 +56,12 @@ class EmbeddingModel:
         start_time = time.time()
         if isinstance(texts, str):
             texts = [texts]  # Ensure texts is always a list
-        embeddings = self.model.encode(texts, device=device, batch_size=batch_size, normalize_embeddings=True)
+        
+        if USE_ONNX:
+            embeddings = self.encode_with_onnx(texts)
+        else:
+            embeddings = self.model.encode(texts, device=device, batch_size=batch_size, normalize_embeddings=True)
+        
         end_time = time.time()
         print(f"[model.embed] Execution time: {end_time - start_time:.5f} seconds")
         return embeddings
