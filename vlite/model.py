@@ -18,14 +18,20 @@ def normalize(v):
     return v / norm
 
 
+def normalize_onnx(v):
+    norm = np.linalg.norm(v, axis=1)
+    norm[norm == 0] = 1e-12
+    return v / norm[:, np.newaxis]
+
+
 
 class EmbeddingModel:
     def __init__(self, model_name="mixedbread-ai/mxbai-embed-large-v1"):
         start_time = time.time()
-        self.model = SentenceTransformer(model_name)
+        self.model = SentenceTransformer(model_name, device="mps")
         
         # tokenizer_path = hf_hub_download(repo_id=model_name, filename="tokenizer.json")
-        # model_path = hf_hub_download(repo_id=model_name, filename="onnx/model.onnx")
+        # model_path = hf_hub_download(repo_id=model_name, filename="onnx/model_fp16.onnx")
 
         # self.tokenizer = Tokenizer.from_file(tokenizer_path)
         # self.tokenizer.enable_truncation(max_length=512)
@@ -43,7 +49,7 @@ class EmbeddingModel:
         end_time = time.time()
         print(f"[model.__init__] Execution time: {end_time - start_time:.5f} seconds")
     
-    def embed(self, texts, max_seq_length=512, device="cpu", batch_size=32):
+    def embed(self, texts, max_seq_length=512, device="mps", batch_size=32):
         start_time = time.time()
         if isinstance(texts, str):
             texts = [texts]  # Ensure texts is always a list
@@ -53,26 +59,34 @@ class EmbeddingModel:
         return embeddings
     
     def encode_with_onnx(self, texts):
+        # texts is a List[str]
+    
+        batch_size = 32
          # Ensure all text items are strings
         if not all(isinstance(text, str) for text in texts):
             raise ValueError("All items in the 'texts' list should be strings.")
 
         try:
-            # Tokenize texts and convert to the correct format
-            inputs = self.tokenizer.encode_batch(texts)
-            input_ids = np.array([x.ids for x in inputs], dtype=np.int64)
-            attention_mask = np.array([x.attention_mask for x in inputs], dtype=np.int64)
-            token_type_ids = np.zeros_like(input_ids, dtype=np.int64)  # Add token_type_ids input
-
-            ort_inputs = {
-                self.model.get_inputs()[0].name: input_ids,
-                self.model.get_inputs()[1].name: attention_mask,
-                self.model.get_inputs()[2].name: token_type_ids  # Add token_type_ids input
-            }
-
-            ort_outs = self.model.run(None, ort_inputs)
-            embeddings = ort_outs[0]
-            return embeddings
+            all_embeddings = []
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i + batch_size]
+                encoded = [self.tokenizer.encode(d) for d in batch]
+                input_ids = np.array([e.ids for e in encoded])
+                attention_mask = np.array([e.attention_mask for e in encoded])
+                onnx_input = {
+                    "input_ids": np.array(input_ids, dtype=np.int64),
+                    "attention_mask": np.array(attention_mask, dtype=np.int64),
+                    "token_type_ids": np.array([np.zeros(len(e), dtype=np.int64) for e in input_ids], dtype=np.int64),
+                }
+                model_output = self.model.run(None, onnx_input)
+                last_hidden_state = model_output[0]
+                # Perform mean pooling with attention weighting
+                input_mask_expanded = np.broadcast_to(np.expand_dims(attention_mask, -1), last_hidden_state.shape)
+                embeddings = np.sum(last_hidden_state * input_mask_expanded, 1) / np.clip(input_mask_expanded.sum(1), a_min=1e-9, a_max=None)
+                embeddings = normalize_onnx(embeddings).astype(np.float32)
+                all_embeddings.append(embeddings)
+            return np.concatenate(all_embeddings)
+    
         except Exception as e:
             print(f"Failed during ONNX encoding: {e}")
             raise

@@ -7,7 +7,7 @@ from .ctx import Ctx
 import time
 
 class VLite:
-    def __init__(self, collection=None, device='cpu', model_name='mixedbread-ai/mxbai-embed-large-v1'):
+    def __init__(self, collection=None, device='mps', model_name='mixedbread-ai/mxbai-embed-large-v1'):
         start_time = time.time()
         if collection is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
