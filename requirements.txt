@@ -4,9 +4,7 @@ docx2txt
 pandas
 Requests
 beautifulsoup4
-llama-cpp-python
 huggingface_hub
 tiktoken
 onnxruntime==1.17.1
 tokenizers==0.15.2
-sentence_transformers

@@ -64,7 +64,7 @@ class VLite:
             all_metadata.extend([item_metadata] * len(chunks))
             all_ids.extend([item_id] * len(chunks))
 
-        encoded_data = self.model.embed(all_chunks, device=self.device)
+        encoded_data = self.model.encode_with_onnx(all_chunks)
         binary_encoded_data = self.model.quantize(encoded_data, precision="binary")
 
         for idx, (chunk, binary_vector, metadata) in enumerate(zip(all_chunks, binary_encoded_data, all_metadata)):
@@ -88,7 +88,7 @@ class VLite:
             print(f"Retrieving top {top_k} similar texts for query: {text}")
             
             # Embed and quantize the query text
-            query_vectors = self.model.embed(text, device=self.device)
+            query_vectors = self.model.encode_with_onnx([text])
             query_binary_vectors = self.model.quantize(query_vectors, precision="binary")
             
             # Perform search on the query binary vectors
