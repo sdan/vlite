@@ -1,21 +1,31 @@
 import numpy as np
 from uuid import uuid4
+from .utils import check_cuda_available, check_mps_available 
 from .model import EmbeddingModel
 from .utils import chop_and_chunk
 import datetime
 from .ctx import Ctx
 import time
 
-USE_ONNX = False
-
 class VLite:
-    def __init__(self, collection=None, device='mps', model_name='mixedbread-ai/mxbai-embed-large-v1'):
+    def __init__(self, collection=None, device=None, model_name='mixedbread-ai/mxbai-embed-large-v1'):
         start_time = time.time()
+        
+        if device is None:
+            if check_cuda_available():
+                device = 'cuda'
+            elif check_mps_available():
+                device = 'mps'
+            else:
+                device = 'cpu'
+        
+        print(f"Initializing VLite with device: {device}")
+        self.device = device
+        
         if collection is None:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection = f"vlite_{current_datetime}"
         self.collection = f"{collection}"
-        self.device = device
         self.model = EmbeddingModel(model_name) if model_name else EmbeddingModel()
         
         self.ctx = Ctx()
@@ -24,7 +34,6 @@ class VLite:
         try:
             ctx_file = self.ctx.read(collection)
             ctx_file.load()
-            # debug print
             print("Number of embeddings: ", len(ctx_file.embeddings))
             print("Number of metadata: ", len(ctx_file.metadata))
             self.index = {
@@ -40,6 +49,7 @@ class VLite:
         
         end_time = time.time()
         print(f"[__init__] Execution time: {end_time - start_time:.5f} seconds")
+        print(f"Using device: {self.device}")
 
     def add(self, data, metadata=None, item_id=None, need_chunks=True, fast=True):
         start_time = time.time()
@@ -71,11 +81,8 @@ class VLite:
             all_chunks.extend(chunks)
             all_metadata.extend([item_metadata] * len(chunks))
             all_ids.extend([item_id] * len(chunks))
-            
-        if USE_ONNX:
-            encoded_data = self.model.encode_with_onnx(all_chunks)
-        else:
-            encoded_data = self.model.embed(all_chunks, device=self.device)
+
+        encoded_data = self.model.embed(all_chunks, device=self.device)
             
         binary_encoded_data = self.model.quantize(encoded_data, precision="binary")
 
@@ -101,13 +108,8 @@ class VLite:
         print("Retrieving similar texts...")
         if text:
             print(f"Retrieving top {top_k} similar texts for query: {text}")
-            
-            # Embed and quantize the query text
-            
-            if USE_ONNX:
-                query_vectors = self.model.encode_with_onnx([text])
-            else:
-                query_vectors = self.model.embed(text, device=self.device)
+                        
+            query_vectors = self.model.embed(text, device=self.device)
             
             query_binary_vectors = self.model.quantize(query_vectors, precision="binary")
             
@@ -135,6 +137,12 @@ class VLite:
         
         corpus_binary_vectors = np.array([item['binary_vector'] for item in self.index.values()])
         top_k_indices, top_k_scores = self.model.search(query_binary_vector, corpus_binary_vectors, top_k)
+        
+        print(f"Top {top_k} indices: {top_k_indices}")
+        print(f"Top {top_k} scores: {top_k_scores}")
+        print(f"No. of items in the collection: {len(self.index)}")
+        print(f"Vlite count: {self.count()}")
+        
         top_k_ids = [list(self.index.keys())[idx] for idx in top_k_indices]
 
         # Apply metadata filter on the retrieved top_k items
@@ -146,10 +154,12 @@ class VLite:
                     filtered_ids.append(chunk_id)
             top_k_ids = filtered_ids[:top_k]
             top_k_scores = top_k_scores[:len(top_k_ids)]
-
-        return list(zip(top_k_ids, top_k_scores))
+            
         end_time = time.time()
         print(f"[rank_and_filter] Execution time: {end_time - start_time:.5f} seconds")
+
+        return list(zip(top_k_ids, top_k_scores))
+        
 
 
     def update(self, id, text=None, metadata=None, vector=None):

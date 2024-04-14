@@ -9,6 +9,8 @@ from typing import List
 import tiktoken
 import numpy as np
 import itertools
+import platform
+import subprocess
 
 try:
     from surya.ocr import run_ocr
@@ -226,3 +228,15 @@ def count_tokens(text):
     enc = tiktoken.get_encoding("cl100k_base")
     token_ids = enc.encode(text, disallowed_special=())
     return len(token_ids)
+
+def check_cuda_available():
+    try:
+        subprocess.check_output(['nvidia-smi'])
+        return True
+    except Exception:
+        return False
+
+def check_mps_available():
+    if platform.system() == "Darwin" or platform.processor().upper() == "ARM":
+        return True
+    return False
