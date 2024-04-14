@@ -26,7 +26,7 @@ class VLite:
             current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             collection = f"vlite_{current_datetime}"
         self.collection = f"{collection}"
-        self.model = EmbeddingModel(model_name) if model_name else EmbeddingModel()
+        self.model = EmbeddingModel(model_name, device=device) if model_name else EmbeddingModel()
         
         self.ctx = Ctx()
         self.index = {}

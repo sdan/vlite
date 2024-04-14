@@ -1,6 +1,8 @@
 import numpy as np
 from transformers import AutoModel, AutoTokenizer
 import time
+import torch
+from typing import Dict
 
 def normalize(v):
     if v.ndim == 1:
@@ -16,16 +18,15 @@ def transform_query(query: str) -> str:
     return f'Represent this sentence for searching relevant passages: {query}'
 
 
-def pooling_np(outputs, attention_mask, strategy='cls'):
+def pooling(outputs: torch.Tensor, inputs: Dict,  strategy: str = 'cls') -> np.ndarray:
     if strategy == 'cls':
-        # Taking the first token (CLS token) for each sequence
-        return outputs[:, 0]
+        outputs = outputs[:, 0]
     elif strategy == 'mean':
-        # Applying attention mask and computing mean pooling
-        outputs_masked = outputs * attention_mask[:, :, None]
-        return np.sum(outputs_masked, axis=1) / np.sum(attention_mask, axis=1)[:, None]
+        outputs = torch.sum(
+            outputs * inputs["attention_mask"][:, :, None], dim=1) / torch.sum(inputs["attention_mask"])
     else:
         raise NotImplementedError
+    return outputs.detach().cpu().numpy()
 
 
 def cos_sim_np(a, b):
@@ -42,11 +43,13 @@ def cos_sim_np(a, b):
 
 
 class EmbeddingModel:
-    def __init__(self, model_name="mixedbread-ai/mxbai-embed-large-v1"):
+    def __init__(self, model_name="mixedbread-ai/mxbai-embed-large-v1", device='cpu'):
         start_time = time.time()
         
+        self.device = device
+        
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name).to(self.device)
         
         self.model_metadata = {
             "bert.embedding_length": 512,
@@ -66,18 +69,13 @@ class EmbeddingModel:
         # Tokenize and prepare inputs
         inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=self.model.config.max_position_embeddings, return_tensors='pt')
         
-        # Explicitly move tensors to the device
-        inputs = {name: tensor.to(device) for name, tensor in inputs.items()}
-
-        # Move model to the device
-        self.model.to(device)
+        for k, v in inputs.items():
+            inputs[k] = v.to(self.device)
 
         # Perform the forward pass
         outputs = self.model(**inputs).last_hidden_state
-        attention_mask = inputs['attention_mask']
-
-        # Pool embeddings using your numpy-based pooling method
-        embeddings = pooling_np(outputs.detach().cpu().numpy(), attention_mask.detach().cpu().numpy(), 'cls')
+        
+        embeddings = pooling(outputs, inputs, 'cls')
 
         end_time = time.time()
         print(f"[model.embed] Execution time: {end_time - start_time:.5f} seconds")
