@@ -10,3 +10,4 @@ tiktoken
 onnxruntime==1.17.1
 tokenizers==0.15.2
 transformers==4.39.0
+torch==2.2.2
