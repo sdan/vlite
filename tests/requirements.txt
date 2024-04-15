@@ -25,3 +25,4 @@ lancedb
 langchain==0.1.14
 langchain-community
 faiss-cpu==1.8.0
+pinecone-client

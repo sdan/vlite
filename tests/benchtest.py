@@ -30,7 +30,7 @@ from langchain.docstore.document import Document
 
 
 from pinecone import Pinecone, ServerlessSpec
-
+import datetime
 import tqdm
 
 def main(queries, corpuss, top_k, doc_counts) -> pd.DataFrame:
@@ -438,71 +438,119 @@ def main(queries, corpuss, top_k, doc_counts) -> pd.DataFrame:
     return results_df, indexing_times_df
 
 
-if __name__ == "__main__":
-    # Benchmark Config
-    k = 5
-    queries = [
-        "What is the architecture of transformers?",
-        "How does transformers handle contextual understanding?",
-        "What are the key improvements in LSTM over Transformers?",
-        "How many parameters does Transformers have?",
-        "What are the limitations of Transformers?",
-        "What are the applications of Transformers?",
-        "How do Transformers handle long-range dependencies?",
-        "What is the difference between Transformers and RNNs?",
-        "How does the attention mechanism work in Transformers?",
-        "What are the different types of attention used in Transformers?",
-        "How do Transformers handle parallelization?",
-        "What are the common use cases of Transformers?",
-        "How do Transformers perform on different NLP tasks?",
-        "What are the challenges in training large Transformer models?",
-        "How do Transformers handle multi-task learning?",
-        "What are the recent advances in Transformer architecture?",
-        "How do Transformers handle out-of-distribution data?",
-        "What are the techniques for efficient inference with Transformers?",
-        "How do Transformers handle multimodal data?",
-        "What are the pros and cons of using Transformers compared to other models?"
-    ]
+# if __name__ == "__main__":
+#     # Benchmark Config
+#     k = 5
+#     queries = [
+#         "What is the architecture of transformers?",
+#         "How does transformers handle contextual understanding?",
+#         "What are the key improvements in LSTM over Transformers?",
+#         "How many parameters does Transformers have?",
+#         "What are the limitations of Transformers?",
+#         "What are the applications of Transformers?",
+#         "How do Transformers handle long-range dependencies?",
+#         "What is the difference between Transformers and RNNs?",
+#         "How does the attention mechanism work in Transformers?",
+#         "What are the different types of attention used in Transformers?",
+#         "How do Transformers handle parallelization?",
+#         "What are the common use cases of Transformers?",
+#         "How do Transformers perform on different NLP tasks?",
+#         "What are the challenges in training large Transformer models?",
+#         "How do Transformers handle multi-task learning?",
+#         "What are the recent advances in Transformer architecture?",
+#         "How do Transformers handle out-of-distribution data?",
+#         "What are the techniques for efficient inference with Transformers?",
+#         "How do Transformers handle multimodal data?",
+#         "What are the pros and cons of using Transformers compared to other models?"
+#     ]
 
+#     corpus = load_file(os.path.join(os.path.dirname(__file__), 'data/attention.pdf'))
+#     chopped_corpus = chop_and_chunk(text=corpus)
+#     doc_count = len(chopped_corpus)
+
+#     benchmark_corpuss = [
+#         # chopped_corpus,
+#         # chopped_corpus * 2,
+#         # chopped_corpus * 4,
+#         # chopped_corpus * 8,
+#         chopped_corpus * 16
+#     ]
+
+#     benchmark_doc_counts = [
+#         # doc_count,
+#         # doc_count * 2,
+#         # doc_count * 4,
+#         # doc_count * 8,
+#         doc_count * 16
+#     ]
+
+#     benchmark_queries = [
+#         # queries,
+#         # queries * 2,
+#         # queries * 4,
+#         # queries * 8,
+#         queries * 16
+#     ]
+
+#     print("Document count:", doc_count)
+#     print("Corpus length:", len(chopped_corpus))
+#     print("Number of queries:", len(queries))
+
+#     for i, (corpus, doc_count, query_list) in enumerate(zip(benchmark_corpuss, benchmark_doc_counts, benchmark_queries)):
+#         print(f"\nRunning benchmark for corpus size {doc_count} and {len(query_list)} queries...")
+#         results, indexing_times = main(query_list, [corpus], k, [doc_count])
+#         print("Benchmark Results:")
+#         print(results)
+#         print("Indexing Times:")
+#         print(indexing_times)
+#         results.to_csv(os.path.join(os.path.dirname(__file__), f"vlite8_benchmark_results_{i}.csv"), index=False)
+#         indexing_times.to_csv(os.path.join(os.path.dirname(__file__), f"vlite8_benchmark_indexing_times_{i}.csv"), index=False)
+            
+def run_benchmark(queries, num_docs, k):
     corpus = load_file(os.path.join(os.path.dirname(__file__), 'data/attention.pdf'))
     chopped_corpus = chop_and_chunk(text=corpus)
-    doc_count = len(chopped_corpus)
 
-    benchmark_corpuss = [
-        # chopped_corpus,
-        # chopped_corpus * 2,
-        # chopped_corpus * 4,
-        # chopped_corpus * 8,
-        chopped_corpus * 16
-    ]
+    # Duplicate the chopped_corpus to reach the desired number of documents
+    corpus = chopped_corpus * (num_docs // len(chopped_corpus) + 1)
+    corpus = corpus[:num_docs]
 
-    benchmark_doc_counts = [
-        # doc_count,
-        # doc_count * 2,
-        # doc_count * 4,
-        # doc_count * 8,
-        doc_count * 16
-    ]
-
-    benchmark_queries = [
-        # queries,
-        # queries * 2,
-        # queries * 4,
-        # queries * 8,
-        queries * 16
-    ]
+    doc_count = len(corpus)
+    benchmark_corpuss = [corpus]
+    benchmark_doc_counts = [doc_count]
+    benchmark_queries = [queries]
 
     print("Document count:", doc_count)
-    print("Corpus length:", len(chopped_corpus))
+    print("Corpus length:", len(corpus))
     print("Number of queries:", len(queries))
 
-    for i, (corpus, doc_count, query_list) in enumerate(zip(benchmark_corpuss, benchmark_doc_counts, benchmark_queries)):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    for corpus, doc_count, query_list in zip(benchmark_corpuss, benchmark_doc_counts, benchmark_queries):
         print(f"\nRunning benchmark for corpus size {doc_count} and {len(query_list)} queries...")
         results, indexing_times = main(query_list, [corpus], k, [doc_count])
         print("Benchmark Results:")
         print(results)
         print("Indexing Times:")
         print(indexing_times)
-        results.to_csv(os.path.join(os.path.dirname(__file__), f"vlite8_benchmark_results_{i}.csv"), index=False)
-        indexing_times.to_csv(os.path.join(os.path.dirname(__file__), f"vlite8_benchmark_indexing_times_{i}.csv"), index=False)
-            
+
+        results_filename = f"vlite_benchmark_results_{timestamp}_{doc_count}.csv"
+        indexing_times_filename = f"vlite_benchmark_indexing_times_{timestamp}_{doc_count}.csv"
+
+        results.to_csv(os.path.join(os.path.dirname(__file__), results_filename), index=False)
+        indexing_times.to_csv(os.path.join(os.path.dirname(__file__), indexing_times_filename), index=False)
+
+if __name__ == "__main__":
+    # Benchmark Config
+    k = 5
+    single_query = "What is the architecture of transformers?"
+    num_docs = 500000
+
+    corpus = load_file(os.path.join(os.path.dirname(__file__), 'data/attention.pdf'))
+    chopped_corpus = chop_and_chunk(text=corpus, max_seq_length=128, fast=True)
+
+    # Duplicate the chopped_corpus to reach the desired number of documents
+    chopped_corpus = chopped_corpus * (num_docs // len(chopped_corpus) + 1)
+    chopped_corpus = chopped_corpus[:num_docs]
+
+    print(f"Length of corpus: {len(chopped_corpus)}")
+    run_benchmark([single_query], num_docs, k)
