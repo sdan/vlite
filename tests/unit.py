@@ -39,7 +39,7 @@ class TestVLite(unittest.TestCase):
         TestVLite.test_times["add_multiple_texts"] = end_time - start_time
         count = self.vlite.count()
         print(f"Count of texts in the collection: {count}")
-        self.assertEqual(count, 34)
+        self.assertEqual(count, 20)
         self.assertEqual(len(result_512), 1)
         self.assertEqual(len(result_8192), 1)
         self.assertEqual(result_512[0][0], "test_text_2")

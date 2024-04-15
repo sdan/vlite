@@ -29,11 +29,11 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.docstore.document import Document
 
 
-# from pinecone import Pinecone, ServerlessSpec
+from pinecone import Pinecone, ServerlessSpec
 
 import tqdm
 
-def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
+def main(queries, corpuss, top_k, doc_counts) -> pd.DataFrame:
     """Run the VLite benchmark.
 
     Parameters
@@ -44,8 +44,8 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
         A list of text corpuses of different sizes to benchmark indexing and retrieval.
     top_k : int
         The number of top similar results to retrieve for each query.
-    token_counts : list
-        A list of token counts corresponding to each corpus size.
+    doc_counts : list
+        A list of document counts corresponding to each corpus size.
 
     Returns
     -------
@@ -58,8 +58,8 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
     indexing_times = []
 
     for corpus_idx, corpus in enumerate(corpuss):
-        token_count = token_counts[corpus_idx]
-        print(f"Running benchmarks for corpus of size {token_count} tokens.")
+        doc_count = doc_counts[corpus_idx]
+        print(f"Running benchmarks for corpus of size {doc_count} documents.")
 
         #################################################
         #                  VLite                        #
@@ -79,13 +79,13 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
         result_add = vlite.add(corpus)
         t1 = time.time()
 
-        print(f"Took {t1 - t0:.3f}s to add {len(result_add)} vectors.")
+        print(f"Took {(t1 - t0) * 1000:.3f}ms to add {len(result_add)} vectors.")
         indexing_times.append(
             {
-                "num_tokens": token_count,
+                "num_docs": doc_count,
                 "lib": "VLite",
                 "num_embeddings": len(result_add),
-                "indexing_time": t1 - t0,
+                "indexing_time_ms": (t1 - t0) * 1000,
             })
 
         print("Starting VLite retrieval trials...")
@@ -95,7 +95,7 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
             t0 = time.time()
             results_retrieve = vlite.retrieve(query, top_k=top_k)
             t1 = time.time()
-            times.append(t1 - t0)
+            times.append((t1 - t0) * 1000)
 
             print(f"Top {top_k} results for query '{query}':")
             for text, similarity, metadata in results_retrieve:
@@ -106,8 +106,8 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
                 "num_embeddings": len(result_add),
                 "lib": "VLite",
                 "k": top_k,
-                "avg_time": np.mean(times),
-                "stddev_time": np.std(times),
+                "avg_time_ms": np.mean(times),
+                "stddev_time_ms": np.std(times),
             }
         )
 
@@ -127,13 +127,13 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
         docsearch = LanceDB.from_documents(documents, embeddings)
 
         t1 = time.time()
-        print(f"Took {t1 - t0:.3f}s to add documents.")
+        print(f"Took {(t1 - t0) * 1000:.3f}ms to add documents.")
         indexing_times.append(
             {
-                "num_tokens": token_count,
+                "num_docs": doc_count,
                 "lib": "LanceDB",
                 "num_embeddings": len(documents),
-                "indexing_time": t1 - t0,
+                "indexing_time_ms": (t1 - t0) * 1000,
             }
         )
 
@@ -143,7 +143,7 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
             t0 = time.time()
             docs = docsearch.similarity_search(query, k=top_k)
             t1 = time.time()
-            times.append(t1 - t0)
+            times.append((t1 - t0) * 1000)
 
             print(f"Top {top_k} results for query '{query}':")
             for doc in docs:
@@ -154,70 +154,14 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
                 "num_embeddings": len(documents),
                 "lib": "LanceDB",
                 "k": top_k,
-                "avg_time": np.mean(times),
-                "stddev_time": np.std(times),
+                "avg_time_ms": np.mean(times),
+                "stddev_time_ms": np.std(times),
             }
         )
 
         print(json.dumps(results[-1], indent=2))
         print("Done LanceDB benchmark.")
         
-
-        #################################################
-        #                  pgvector       unable to run remote                #
-        #################################################
-        # print("Begin PGVector benchmark.")
-        # print("Adding documents to PGVector instance...")
-        # t0 = time.time()
-
-        # embeddings = HuggingFaceEmbeddings(model_name="mixedbread-ai/mxbai-embed-large-v1")
-
-        # documents = [Document(page_content=text.replace('\0', '')) for text in corpus]
-
-        # CONNECTION_STRING = "postgresql+psycopg2://postgres:password@localhost:5433/embedding_test"
-
-        # db = PGVector.from_documents(
-        #     embedding=embeddings,
-        #     documents=documents,
-        #     collection_name="benchmark_test",
-        #     connection_string=CONNECTION_STRING,
-        # )
-
-        # t1 = time.time()
-        # print(f"Took {t1 - t0:.3f}s to add documents.")
-        # indexing_times.append(
-        #     {
-        #         "num_tokens": token_count,
-        #         "lib": "PGVector",
-        #         "num_embeddings": len(documents),
-        #         "indexing_time": t1 - t0,
-        #     }
-        # )
-
-        # print("Starting PGVector trials...")
-        # times = []
-        # for query in queries:
-        #     t0 = time.time()
-        #     docs = db.similarity_search_with_score(query, k=top_k)
-        #     t1 = time.time()
-        #     times.append(t1 - t0)
-
-        #     print(f"Top {top_k} results for query '{query}':")
-        #     for doc, score in docs:
-        #         print(f"Text: {doc.page_content}\nScore: {score}\n---")
-
-        # results.append(
-        #     {
-        #         "num_embeddings": len(documents),
-        #         "lib": "PGVector",
-        #         "k": top_k,
-        #         "avg_time": np.mean(times),
-        #         "stddev_time": np.std(times),
-        #     }
-        # )
-
-        # print(json.dumps(results[-1], indent=2))
-        # print("Done PGVector benchmark.")
 
         #################################################
         #                  FAISS                        #
@@ -231,13 +175,13 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
         db = FAISS.from_documents(documents, embeddings)
 
         t1 = time.time()
-        print(f"Took {t1 - t0:.3f}s to add documents.")
+        print(f"Took {(t1 - t0) * 1000:.3f}ms to add documents.")
         indexing_times.append(
             {
-                "num_tokens": token_count,
+                "num_docs": doc_count,
                 "lib": "FAISS",
                 "num_embeddings": len(corpus),
-                "indexing_time": t1 - t0,
+                "indexing_time_ms": (t1 - t0) * 1000,
             }
         )
 
@@ -247,7 +191,7 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
             t0 = time.time()
             docs = db.similarity_search(query, k=top_k)
             t1 = time.time()
-            times.append(t1 - t0)
+            times.append((t1 - t0) * 1000)
 
             print(f"Top {top_k} results for query '{query}':")
             for doc in docs:
@@ -258,8 +202,8 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
                 "num_embeddings": len(corpus),
                 "lib": "FAISS",
                 "k": top_k,
-                "avg_time": np.mean(times),
-                "stddev_time": np.std(times),
+                "avg_time_ms": np.mean(times),
+                "stddev_time_ms": np.std(times),
             }
         )
 
@@ -281,23 +225,22 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
             collection.add(documents=corpus, ids=ids)
         except Exception as e:
             print(e)
-            print("Failed to add documents to Chroma collection.a")
+            print("Failed to add documents to Chroma collection.")
             t0 = time.time()
 
         t1 = time.time()
-        print(f"Took {t1 - t0:.3f}s to add vectors.")
+        print(f"Took {(t1 - t0) * 1000:.3f}ms to add vectors.")
         indexing_times.append(
             {
-                "num_tokens": token_count,
+                "num_docs": doc_count,
                 "lib": "Chroma",
                 "num_embeddings": len(corpus),
-                "indexing_time": t1 - t0,
+                "indexing_time_ms": (t1 - t0) * 1000,
             }
         )
 
         print("Starting Chroma trials...")
         times = []
-
         for query_vector in queries:
             t0 = time.time()
             try:
@@ -309,109 +252,104 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
                 t0 = time.time()
             print(f"Top {top_k} results: {chroma_results['distances']}")
             t1 = time.time()
-            times.append(t1 - t0)
+            times.append((t1 - t0) * 1000)
 
         results.append(
             {
                 "num_embeddings": len(corpus),
                 "lib": "Chroma",
                 "k": top_k,
-                "avg_time": np.mean(times),
-                "stddev_time": np.std(times),
+                "avg_time_ms": np.mean(times),
+                "stddev_time_ms": np.std(times),
             }
         )
 
-    #     #################################################
-    #     #                  Pinecone   unable to run remote                  #
-    #     #################################################
-    #     print("Begin Pinecone benchmark.")
-    #     print("Initializing Pinecone...")
-    #     t0 = time.time()
-
-    #     # Replace these with your Pinecone API key and environment
-    #     pinecone = Pinecone(api_key="")
+        print(json.dumps(results[-1], indent=2))
+        print("Done Chroma benchmark.")
 
 
-    #     environment = "us-east-1-aws"
-    #     index_name = "quickstart"
+        #################################################
+        #                  Pinecone                     #
+        #################################################
+        print("Begin Pinecone benchmark.")
+        print("Initializing Pinecone...")
+        t0 = time.time()
 
-    # #     if index_name not in pinecone.list_indexes():
-    # #         pinecone.create_index(name=index_name, dimension=1024, metric="euclidean", # Replace with your model metric
-    # # spec=ServerlessSpec(
-    # #     cloud="aws",
-    # #     region="us-west-2"
-    # # ))
-    #     t1 = time.time()
-    #     # now connect to the index
-    #     index = pinecone.Index("quickstart")
-    #     model = SentenceTransformer('mixedbread-ai/mxbai-embed-large-v1')
+        # Replace these with your Pinecone API key and environment
+        pinecone = Pinecone(api_key="")
+        environment = "us-east-1-aws"
+        index_name = "quickstart"
+
+        t1 = time.time()
+        # now connect to the index
+        index = pinecone.Index("quickstart")
+        model = SentenceTransformer('mixedbread-ai/mxbai-embed-large-v1')
 
         
-        
 
-    #     t0 = time.time()
-    #     print(f"Took {t1 - t0:.3f}s to initialize")
-    #     print("Adding vectors to Pinecone instance...")
-    #     batch_size = 128
+        t0 = time.time()
+        print(f"Took {(t1 - t0) * 1000:.3f}ms to initialize")
+        print("Adding vectors to Pinecone instance...")
+        batch_size = 128
 
-    #     for i in tqdm.tqdm(range(0, len(corpus), batch_size)):
-    #         # find end of batch
-    #         i_end = min(i + batch_size, len(corpus))
-    #         # create IDs batch
-    #         ids = [str(x) for x in range(i, i_end)]
-    #         # create metadata batch
-    #         metadatas = [{'text': text} for text in corpus[i:i_end]]
-    #         # create embeddings
-    #         embeddings = model.encode(corpus[i:i_end]).tolist()
-    #         # create records list for upsert
-    #         records = zip(ids, embeddings, metadatas)
-    #         # upsert to Pinecone
-    #         index.upsert(vectors=records)
+        for i in tqdm.tqdm(range(0, len(corpus), batch_size)):
+            # find end of batch
+            i_end = min(i + batch_size, len(corpus))
+            # create IDs batch
+            ids = [str(x) for x in range(i, i_end)]
+            # create metadata batch
+            metadatas = [{'text': text} for text in corpus[i:i_end]]
+            # create embeddings
+            embeddings = model.encode(corpus[i:i_end]).tolist()
+            # create records list for upsert
+            records = zip(ids, embeddings, metadatas)
+            # upsert to Pinecone
+            index.upsert(vectors=records)
 
-    #     t1 = time.time()
-    #     print(f"Took {t1 - t0:.3f}s to add vectors.")
-    #     indexing_times.append(
-    #         {
-    #             "num_tokens": token_count,
-    #             "lib": "Pinecone",
-    #             "num_embeddings": len(corpus),
-    #             "indexing_time": t1 - t0,
-    #         }
-    #     )
+        t1 = time.time()
+        print(f"Took {(t1 - t0) * 1000:.3f}ms to add vectors.")
+        indexing_times.append(
+            {
+                "num_docs": doc_count,
+                "lib": "Pinecone",
+                "num_embeddings": len(corpus),
+                "indexing_time_ms": (t1 - t0) * 1000,
+            }
+        )
 
-    #     # Query Pinecone
-    #     print("Starting Pinecone trials...")
-    #     times = []
-    #     for query_text in queries:
-    #         # create the query vector
-    #         query_vector = model.encode([query_text]).tolist()[0]
-    #         # now query
-    #         t0 = time.time()
-    #         try:
-    #             xq = index.query(vector=query_vector, top_k=top_k, include_metadata=True)
-    #         except Exception as e:
-    #             print("Exception: ", e)
-    #             t0 = time.time()
-    #             continue
-    #         t1 = time.time()
-    #         times.append(t1 - t0)
+        # Query Pinecone
+        print("Starting Pinecone trials...")
+        times = []
+        for query_text in queries:
+            # create the query vector
+            query_vector = model.encode([query_text]).tolist()[0]
+            # now query
+            t0 = time.time()
+            try:
+                xq = index.query(vector=query_vector, top_k=top_k, include_metadata=True)
+            except Exception as e:
+                print("Exception: ", e)
+                t0 = time.time()
+                continue
+            t1 = time.time()
+            times.append((t1 - t0) * 1000)
 
-    #         print(f"Top {top_k} results for '{query_text}'")
-    #         for result in xq['matches']:
-    #             print(f"{round(result['score'], 2)}: {result['metadata']['text'][:100]}...")
+            print(f"Top {top_k} results for '{query_text}'")
+            for result in xq['matches']:
+                print(f"{round(result['score'], 2)}: {result['metadata']['text'][:100]}...")
 
-    #     results.append(
-    #         {
-    #             "num_embeddings": len(corpus),
-    #             "lib": "Pinecone",
-    #             "k": top_k,
-    #             "avg_time": np.mean(times),
-    #             "stddev_time": np.std(times),
-    #         }
-    #     )
+        results.append(
+            {
+                "num_embeddings": len(corpus),
+                "lib": "Pinecone",
+                "k": top_k,
+                "avg_time_ms": np.mean(times),
+                "stddev_time_ms": np.std(times),
+            }
+        )
 
-    #     print(json.dumps(results[-1], indent=2))
-    #     print("Done Pinecone benchmark.")
+        print(json.dumps(results[-1], indent=2))
+        print("Done Pinecone benchmark.")
 
 
         
@@ -453,13 +391,13 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
             t0 = time.time()
 
         t1 = time.time()
-        print(f"Took {t1 - t0:.3f}s to add vectors.")
+        print(f"Took {(t1 - t0) * 1000:.3f}ms to add vectors.")
         indexing_times.append(
             {
-                "num_tokens": token_count,
+                "num_docs": doc_count,
                 "lib": "Qdrant",
                 "num_embeddings": len(vectors),
-                "indexing_time": t1 - t0,
+                "indexing_time_ms": (t1 - t0) * 1000,
             }
         )
 
@@ -475,13 +413,12 @@ def main(queries, corpuss, top_k, token_counts) -> pd.DataFrame:
                     query_vector=query_vector,
                     limit=top_k
                 )
-                # print(f"Top {top_k} results: {[hit.payload['text'] for hit in hits]}")
                 t1 = time.time()
             except Exception as e:
                 print(e)
                 print("Failed to query Qdrant instance.")
                 t0 = time.time()
-            times.append(t1 - t0)
+            times.append((t1 - t0) * 1000)
 
         results.append(
             {
@@ -529,44 +466,43 @@ if __name__ == "__main__":
 
     corpus = load_file(os.path.join(os.path.dirname(__file__), 'data/attention.pdf'))
     chopped_corpus = chop_and_chunk(text=corpus)
-    token_count = EmbeddingModel().token_count(" ".join(chopped_corpus))
+    doc_count = len(chopped_corpus)
 
     benchmark_corpuss = [
-        chopped_corpus,
-        chopped_corpus * 2,
-        chopped_corpus * 4,
-        chopped_corpus * 8,
+        # chopped_corpus,
+        # chopped_corpus * 2,
+        # chopped_corpus * 4,
+        # chopped_corpus * 8,
         chopped_corpus * 16
     ]
 
-    benchmark_token_counts = [
-        token_count,
-        token_count * 2,
-        token_count * 4,
-        token_count * 8,
-        token_count * 16
+    benchmark_doc_counts = [
+        # doc_count,
+        # doc_count * 2,
+        # doc_count * 4,
+        # doc_count * 8,
+        doc_count * 16
     ]
 
     benchmark_queries = [
-        queries,
-        queries * 2,
-        queries * 4,
-        queries * 8,
+        # queries,
+        # queries * 2,
+        # queries * 4,
+        # queries * 8,
         queries * 16
     ]
 
-    print("Token count:", token_count)
+    print("Document count:", doc_count)
     print("Corpus length:", len(chopped_corpus))
     print("Number of queries:", len(queries))
 
-    for i, (corpus, token_count, query_list) in enumerate(zip(benchmark_corpuss, benchmark_token_counts, benchmark_queries)):
-        print(f"\nRunning benchmark for corpus size {token_count} and {len(query_list)} queries...")
-        results, indexing_times = main(query_list, [corpus], k, [token_count])
+    for i, (corpus, doc_count, query_list) in enumerate(zip(benchmark_corpuss, benchmark_doc_counts, benchmark_queries)):
+        print(f"\nRunning benchmark for corpus size {doc_count} and {len(query_list)} queries...")
+        results, indexing_times = main(query_list, [corpus], k, [doc_count])
         print("Benchmark Results:")
         print(results)
         print("Indexing Times:")
         print(indexing_times)
-        results.to_csv(os.path.join(os.path.dirname(__file__), f"vlite5_benchmark_results_{i}.csv"), index=False)
-        indexing_times.to_csv(os.path.join(os.path.dirname(__file__), f"vlite5_benchmark_indexing_times_{i}.csv"), index=False)
-        
-        
+        results.to_csv(os.path.join(os.path.dirname(__file__), f"vlite8_benchmark_results_{i}.csv"), index=False)
+        indexing_times.to_csv(os.path.join(os.path.dirname(__file__), f"vlite8_benchmark_indexing_times_{i}.csv"), index=False)
+            

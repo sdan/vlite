@@ -51,7 +51,7 @@ class VLite:
         print(f"[__init__] Execution time: {end_time - start_time:.5f} seconds")
         print(f"Using device: {self.device}")
 
-    def add(self, data, metadata=None, item_id=None, need_chunks=True, fast=True):
+    def add(self, data, metadata=None, item_id=None, need_chunks=False, fast=True):
         start_time = time.time()
         data = [data] if not isinstance(data, list) else data
         results = []
@@ -82,9 +82,12 @@ class VLite:
             all_metadata.extend([item_metadata] * len(chunks))
             all_ids.extend([item_id] * len(chunks))
 
-        encoded_data = self.model.embed(all_chunks, device=self.device)
+        # encoded_data = self.model.embed(all_chunks)
             
-        binary_encoded_data = self.model.quantize(encoded_data, precision="binary")
+        # binary_encoded_data = self.model.prepare_quantize(encoded_data, precision="binary")
+        
+        binary_encoded_data = self.model.embed(all_chunks, precision="binary")
+
 
         for idx, (chunk, binary_vector, metadata) in enumerate(zip(all_chunks, binary_encoded_data, all_metadata)):
             chunk_id = f"{item_id}_{idx}"
@@ -109,10 +112,13 @@ class VLite:
         if text:
             print(f"Retrieving top {top_k} similar texts for query: {text}")
                         
-            query_vectors = self.model.embed(text, device=self.device)
+            # query_vectors = self.model.embed(text)
             
-            query_binary_vectors = self.model.quantize(query_vectors, precision="binary")
+            # query_binary_vectors = self.model.prepare_quantize(query_vectors, precision="binary")
             
+            query_binary_vectors = self.model.embed(text, precision="binary")
+
+
             # Perform search on the query binary vectors
             results = []
             for query_binary_vector in query_binary_vectors:
@@ -133,32 +139,55 @@ class VLite:
         
     def rank_and_filter(self, query_binary_vector, top_k, metadata=None):
         start_time = time.time()
+        print(f"aShape of query vector: {query_binary_vector.shape}")
         query_binary_vector = np.array(query_binary_vector).reshape(-1)
-        
-        corpus_binary_vectors = np.array([item['binary_vector'] for item in self.index.values()])
+        print(f"bShape of query vector: {query_binary_vector.shape}")
+
+        # Collect all binary vectors and ensure they all have the same shape as the query vector
+        binary_vectors = []
+        mismatch_count = 0
+        for item_id, item in self.index.items():
+            binary_vector = item['binary_vector']
+            if len(binary_vector) == len(query_binary_vector):
+                binary_vectors.append(binary_vector)
+            else:
+                mismatch_count += 1
+                print(f"Skipping vector with ID {item_id} of length {len(binary_vector)}, expected length {len(query_binary_vector)}")
+
+        if mismatch_count > 0:
+            print(f"Skipped {mismatch_count} vectors due to length mismatch.")
+
+        # Convert list of binary vectors to a NumPy array
+        if binary_vectors:
+            corpus_binary_vectors = np.array(binary_vectors)
+            print(f"Shape of corpus binary vectors array: {corpus_binary_vectors.shape}")
+        else:
+            raise ValueError("No valid binary vectors found for comparison.")
+
         top_k_indices, top_k_scores = self.model.search(query_binary_vector, corpus_binary_vectors, top_k)
         
         print(f"Top {top_k} indices: {top_k_indices}")
         print(f"Top {top_k} scores: {top_k_scores}")
         print(f"No. of items in the collection: {len(self.index)}")
         print(f"Vlite count: {self.count()}")
-        
+
         top_k_ids = [list(self.index.keys())[idx] for idx in top_k_indices]
 
         # Apply metadata filter on the retrieved top_k items
+        filtered_ids = []
         if metadata:
-            filtered_ids = []
             for chunk_id in top_k_ids:
                 item_metadata = self.index[chunk_id]['metadata']
                 if all(item_metadata.get(key) == value for key, value in metadata.items()):
                     filtered_ids.append(chunk_id)
             top_k_ids = filtered_ids[:top_k]
             top_k_scores = top_k_scores[:len(top_k_ids)]
-            
+        
         end_time = time.time()
         print(f"[rank_and_filter] Execution time: {end_time - start_time:.5f} seconds")
-
         return list(zip(top_k_ids, top_k_scores))
+
+
         
 
 

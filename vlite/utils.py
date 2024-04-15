@@ -30,8 +30,6 @@ def chop_and_chunk(text, max_seq_length=512, fast=False):
         text = [text]
     enc = tiktoken.get_encoding("cl100k_base")
     chunks = []
-    print(f"Length of text: {len(text)}")
-    # print(f"Original text: {text}")
     for t in text:
         if fast:
             chunk_size = max_seq_length * 4

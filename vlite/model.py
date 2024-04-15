@@ -4,29 +4,25 @@ import time
 import torch
 from typing import Dict
 
-def normalize(v):
-    if v.ndim == 1:
-        v = v.reshape(1, -1)  # Reshape v to 2D array if it is 1D
-    # Detach the tensor if it's a PyTorch tensor and requires grad
-    v = v.detach().cpu().numpy() if hasattr(v, 'detach') else v
-    norm = np.linalg.norm(v, axis=1, keepdims=True)
-    norm[norm == 0] = 1e-12
-    return v / norm
+# def normalize(v):
+#     return torch.nn.functional.normalize(v, p=2, dim=1)
+
 
 
 def transform_query(query: str) -> str:
     return f'Represent this sentence for searching relevant passages: {query}'
 
-
 def pooling(outputs: torch.Tensor, inputs: Dict,  strategy: str = 'cls') -> np.ndarray:
     if strategy == 'cls':
-        outputs = outputs[:, 0]
+        pooled_output = outputs[:, 0]
     elif strategy == 'mean':
-        outputs = torch.sum(
-            outputs * inputs["attention_mask"][:, :, None], dim=1) / torch.sum(inputs["attention_mask"])
+        attention_mask = inputs["attention_mask"][:, :, None]
+        sum_embeddings = torch.sum(outputs * attention_mask, dim=1)
+        sum_mask = torch.sum(attention_mask, dim=1)
+        pooled_output = sum_embeddings / sum_mask
     else:
         raise NotImplementedError
-    return outputs.detach().cpu().numpy()
+    return pooled_output
 
 
 def cos_sim_np(a, b):
@@ -41,16 +37,12 @@ def cos_sim_np(a, b):
     return (dot_product / (norm_a * norm_b)).flatten()  # Flatten to handle cases where we compare just two vectors
 
 
-
 class EmbeddingModel:
     def __init__(self, model_name="mixedbread-ai/mxbai-embed-large-v1", device='cpu'):
         start_time = time.time()
-        
         self.device = device
-        
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name).to(self.device)
-        
         self.model_metadata = {
             "bert.embedding_length": 512,
             "bert.context_length": 512
@@ -60,61 +52,58 @@ class EmbeddingModel:
         self.embedding_dtype = "float32"
         end_time = time.time()
         print(f"[model.__init__] Execution time: {end_time - start_time:.5f} seconds")
-    
-    def embed(self, texts, device='cpu', batch_size=32):
+
+    def embed(self, texts, batch_size=32, precision="binary"):
         start_time = time.time()
         if isinstance(texts, str):
             texts = [texts]  # Ensure texts is always a list
 
         # Tokenize and prepare inputs
-        inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=self.model.config.max_position_embeddings, return_tensors='pt')
-        
-        for k, v in inputs.items():
-            inputs[k] = v.to(self.device)
+        inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=self.context_length, return_tensors='pt')
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
         # Perform the forward pass
-        outputs = self.model(**inputs).last_hidden_state
-        
-        embeddings = pooling(outputs, inputs, 'cls')
+        with torch.no_grad():
+            outputs = self.model(**inputs).last_hidden_state
+            embeddings = pooling(outputs, inputs, 'cls')
 
-        end_time = time.time()
-        print(f"[model.embed] Execution time: {end_time - start_time:.5f} seconds")
-        return embeddings
+        # Normalize embeddings to unit length
+        assert isinstance(embeddings, torch.Tensor), "Embeddings must be a PyTorch tensor"
+        embeddings = self.normalize(embeddings)
 
-
-
-
-    def quantize(self, embeddings, precision="binary"):
-        start_time = time.time()
-        # first normalize_embeddings to unit length
-        embeddings = normalize(embeddings)
-        # slice to get MRL embeddings
+        # Slice to get MRL embeddings
         embeddings_slice = embeddings[..., :512]
-        
+
         if precision == "binary":
+            binary_embeddings = (embeddings_slice > 0).byte()
+            quantized_embeddings = binary_embeddings.cpu().numpy()
+            np.packbits(quantized_embeddings, axis=-1)
             end_time = time.time()
-            print(f"[model.quantize] Execution time: {end_time - start_time:.5f} seconds")
-            return self._binary_quantize(embeddings_slice)
+            print(f"[model.embed] Execution time: {end_time - start_time:.5f} seconds")
+            print(f"Quantized embeddings shape: {quantized_embeddings.shape}")
+            return quantized_embeddings
         else:
             raise ValueError(f"Precision {precision} is not supported")
 
-    def _binary_quantize(self, embeddings):
-        return (np.packbits(embeddings > 0).reshape(embeddings.shape[0], -1) - 128).astype(np.int8)
-
     def hamming_distance(self, embedding1, embedding2):
         # Calculate Hamming distance directly using bitwise operations
-        return np.count_nonzero(np.bitwise_xor(embedding1, embedding2))
+        return np.sum(embedding1 != embedding2, axis=1)
 
     def search(self, query_embedding, embeddings, top_k):
-        query_embedding = np.atleast_2d(query_embedding)
-
-        # Remove the type check for boolean, as we handle integer packed binaries
-        distances = np.array([self.hamming_distance(query_embedding.flatten(), emb.flatten()) for emb in embeddings])
-
-        # Find the indices of the top_k smallest distances
-        top_k_indices = np.argsort(distances)[:top_k]
-        top_k_scores = distances[top_k_indices]
-
+        hamming_distances = np.sum(embeddings != query_embedding, axis=1)
+        max_distance = embeddings.shape[1] * 8  # Maximum possible Hamming distance
+        top_k_indices = np.argsort(hamming_distances)[:top_k]
+        top_k_scores = hamming_distances[top_k_indices]
+        top_k_scores = 1 - hamming_distances / max_distance
         return top_k_indices, top_k_scores
 
+    def normalize(self, v):
+        if isinstance(v, np.ndarray):
+            # Convert to tensor if accidentally given a numpy array (this should not happen if data flow is correct)
+            v = torch.tensor(v, dtype=torch.float32, device=self.device)
+        return torch.nn.functional.normalize(v, p=2, dim=1)
 
+
+    def token_count(self, text):
+        encoded_input = self.tokenizer.encode_plus(text, return_tensors='pt')
+        return len(encoded_input['input_ids'][0])
