@@ -1,6 +1,8 @@
 # vlite
 
-A blazing fast, lightweight, and simple vector database made with numpy and llama.cpp in ~1k lines of code.
+a simple and blazing fast vector database
+
+there is no database you need to set up, no server to run, and no complex configuration. just install vlite and start using it. take the CTX file with you wherever you go. its like a browser cookie but with embeddings.
 
 ![1a3e85a6-2a3f-4092-beea-8b9d69433e80](https://github.com/sdan/vlite/assets/22898443/ed21a28e-8e2a-449b-b737-4603e4f8d0bd)
 
@@ -12,6 +14,7 @@ A blazing fast, lightweight, and simple vector database made with numpy and llam
 - Ingest text, PDF, CSV, PPTX, and webpages
 - Chunking, metadata filtering, PDF OCR support for extracting text from scanned PDFs
 - **Over 77.95% faster than Chroma on indexing, and 422% faster on retrieval**
+
 
 ## Installation
 
@@ -47,7 +50,7 @@ vlite is a vector database built for agents, ChatGPT Plugins, and other AI apps 
 
 vlite introduces the CTX file format, which acts like a browser cookie for user embeddings, providing efficient storage, retrieval of embeddings, composability, portability, and user context.
 
-Under the hood, vlite uses Pytorch's Metal Performance Shader(MPS) for accelerated embedding generation and defaults to binary embeddings for the fastest retrieval in memory vector databases in Python. It beats Chroma on all metrics retrieval/indexing, specifically 77.95% faster indexing speed compared to Chroma.
+at its core is just a dictionary of embeddings, but it's optimized for speed and simplicity. There is no database you need to set up, no server to run, and no complex configuration. Just install the package and start using it. Take the CTX file with you wherever you go. It's like a browser cookie for your embeddings.
 
 ![converted copy](https://github.com/sdan/vlite/assets/22898443/1b5b330d-0094-4da1-8d01-302255aa2010)
 
