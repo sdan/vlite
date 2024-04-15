@@ -50,8 +50,6 @@ vlite is a vector database built for agents, ChatGPT Plugins, and other AI apps 
 
 vlite introduces the CTX file format, which acts like a browser cookie for user embeddings, providing efficient storage, retrieval of embeddings, composability, portability, and user context.
 
-at its core is just a dictionary of embeddings, but it's optimized for speed and simplicity. There is no database you need to set up, no server to run, and no complex configuration. Just install the package and start using it. Take the CTX file with you wherever you go. It's like a browser cookie for your embeddings.
-
 ![converted copy](https://github.com/sdan/vlite/assets/22898443/1b5b330d-0094-4da1-8d01-302255aa2010)
 
 ## License
