@@ -23,7 +23,7 @@ from vlite import VLite
 vlite = VLite(collection="my_collection")
 ```
 - `collection` (optional): The name of the collection file. If not provided, a default name will be generated based on the current timestamp.
-- `device` (optional): The device to use for embedding ('cpu' or 'cuda'). Default is 'cpu'.
+- `device` (optional): The device to use for embedding ('cpu', 'mps', or 'cuda'). Default is 'cpu'. 'mps' uses PyTorch's Metal Performance Shaders on M1 macs, 'cuda' uses a NVIDIA GPU for embedding generation.
 - `model_name` (optional): The name of the embedding model to use. Default is 'mixedbread-ai/mxbai-embed-large-v1'.
 
 ### Data Types Supported
@@ -31,31 +31,32 @@ vlite = VLite(collection="my_collection")
 - `.txt`: A path to a text file locally.
 - `.pdf/.docx`: A path to a PDF file locally.
 - `.csv`: A path to a CSV file locally.
-- `.pptx`: A path to a PPTX file locally.
 - `webpage`: A URL to a webpage.
 
 ### Adding Text to the Collection
 To add text to the collection, use the `add` method:
 ```python
-vlite.add(data, metadata=None, need_chunks=True, fast=True)
+vlite.add(data, metadata=None, item_id=None, need_chunks=False, fast=True)
 ```
 - `data`: The text data to be added. It can be a string, a dictionary containing text, id, and/or metadata, or a list of strings or dictionaries.
 - `metadata` (optional): Additional metadata to be appended to each text entry.
-- `need_chunks` (optional): Whether to split the text into chunks. Default is `True`.
+- `item_id` (optional): A unique identifier for the text item being added. If not provided, a random UUID will be generated.
+- `need_chunks` (optional): Whether to split the text into chunks. Default is `False`.
 - `fast` (optional): Whether to use a faster chunking method. Default is `True`.
 
-The `add` method returns a list of tuples, each containing the ID of the added text, the updated vectors array, and the metadata.
+The `add` method returns a list of tuples, each containing the ID of the added text, the binary encoded embedding, and the metadata.
 
 ### Retrieving Similar Texts
 To retrieve similar texts from the collection, use the `retrieve` method:
 ```python
-vlite.retrieve(text=None, top_k=5, metadata=None)
+vlite.retrieve(text=None, top_k=5, metadata=None, return_scores=False)
 ```
-- `text` (optional): The query text for finding similar texts.
+- `text`: The query text for finding similar texts.
 - `top_k` (optional): The number of top similar texts to retrieve. Default is 5.
 - `metadata` (optional): Metadata to filter the retrieved texts.
+- `return_scores` (optional): Whether to return the similarity scores along with the retrieved texts. Default is `False`.
 
-The `retrieve` method returns a tuple containing a list of similar texts, their similarity scores, and metadata (if applicable).
+The `retrieve` method returns a list of tuples, each containing the index, text, metadata, and optionally the similarity score (if `return_scores` is `True`) of the retrieved texts.
 
 ### Deleting Items
 To delete items from the collection, use the `delete` method:
@@ -86,7 +87,19 @@ vlite.get(ids=None, where=None)
 - `ids` (optional): List of IDs to retrieve. If provided, only items with the specified IDs will be returned.
 - `where` (optional): Metadata filter to apply. Items matching the filter will be returned.
 
-The `get` method returns a list of retrieved items, each item being a tuple of (text, metadata).
+The `get` method returns a list of retrieved items, each item being a tuple of (id, text, metadata).
+
+### Setting Item Attributes
+To set attributes for an item in the collection, use the `set` method:
+```python
+vlite.set(id, text=None, metadata=None, vector=None)
+```
+- `id`: The ID of the item to set attributes for.
+- `text` (optional): The text content of the item.
+- `metadata` (optional): The metadata of the item.
+- `vector` (optional): The embedding vector of the item.
+
+If the item with the specified ID exists, it will be updated with the provided attributes. If the item does not exist, a new item will be created with the provided attributes.
 
 ### Counting Items
 To get the number of items in the collection, use the `count` method:
@@ -123,60 +136,60 @@ vlite.dump()
 ```
 The `dump` method returns a dictionary containing the collection data.
 
-# OMOM File Format
-vlite uses the OMOM (Optimized Memory-Mapped Objects) file format for efficient storage and retrieval of embeddings and associated data. The OMOM file format consists of the following sections:
+## CTX File Format
+vlite uses the CTX (Context) file format for efficient storage and retrieval of embeddings and associated data. The CTX file format consists of the following sections:
 
 1. **Header**: Contains metadata about the embedding model, embedding size, data type, and context length.
 2. **Embeddings**: Stores the binary embeddings as a contiguous block of memory.
 3. **Contexts**: Stores the associated text contexts for each embedding.
 4. **Metadata**: Stores additional metadata associated with each embedding.
 
-The OMOM file format is designed to be memory-efficient and allows for fast loading and saving of embeddings and associated data.
+The CTX file format is designed to be memory-efficient and allows for fast loading and saving of embeddings and associated data.
 
-### Creating an OMOM File
-To create a new OMOM file, use the `create` method of the `Omom` class:
+### Creating a CTX File
+To create a new CTX file, use the `create` method of the `Ctx` class:
 ```python
-from vlite.omom import Omom
+from vlite.ctx import Ctx
 
-omom = Omom()
-with omom.create("example") as omom_file:
+ctx = Ctx()
+with ctx.create("example") as ctx_file:
     # Set header information
-    omom_file.set_header(
+    ctx_file.set_header(
         embedding_model="example_model",
-        embedding_size=10,
-        embedding_dtype="float32",
+        embedding_size=64,
+        embedding_dtype="binary",
         context_length=100
     )
     
     # Add embeddings, contexts, and metadata
-    omom_file.add_embedding([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-    omom_file.add_context("This is an example context.")
-    omom_file.add_metadata("key", "value")
+    ctx_file.add_embedding([0, 1, 0, 1, 1, 0, 1, 0, 0, 1, ...])
+    ctx_file.add_context("This is an example context.")
+    ctx_file.add_metadata("key", "value")
 ```
 
-### Reading an OMOM File
-To read an existing OMOM file, use the `read` method of the `Omom` class:
+### Reading a CTX File
+To read an existing CTX file, use the `read` method of the `Ctx` class:
 ```python
-from vlite.omom import Omom
+from vlite.ctx import Ctx
 
-omom = Omom()
-with omom.read("example") as omom_file:
+ctx = Ctx()
+with ctx.read("example") as ctx_file:
     # Access header information
-    header = omom_file.header
+    header = ctx_file.header
     
     # Access embeddings, contexts, and metadata
-    embeddings = omom_file.embeddings
-    contexts = omom_file.contexts
-    metadata = omom_file.metadata
+    embeddings = ctx_file.embeddings
+    contexts = ctx_file.contexts
+    metadata = ctx_file.metadata
 ```
 
-### Deleting an OMOM File
-To delete an OMOM file, use the `delete` method of the `Omom` class:
+### Deleting a CTX File
+To delete a CTX file, use the `delete` method of the `Ctx` class:
 ```python
-from vlite.omom import Omom
+from vlite.ctx import Ctx
 
-omom = Omom()
-omom.delete("example")
+ctx = Ctx()
+ctx.delete("example")
 ```
 
 ## License
