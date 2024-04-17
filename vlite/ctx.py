@@ -41,7 +41,7 @@ class CtxFile:
 
     def add_metadata(self, key: str, value: Union[int, float, str]):
         self.metadata[key] = value
-
+        
     def save(self):
         print("Number of embeddings to save: ", len(self.embeddings))
         print("Number of metadata keys to save: ", len(self.metadata))
@@ -54,8 +54,10 @@ class CtxFile:
             file.write(header_json)
 
             if self.embeddings:
+                for emb in self.embeddings:
+                    print(f"[save] size of embeddings {len(emb)}")
                 embeddings_data = b"".join(
-                    struct.pack(f"<{len(emb)}f", *[float(x) if not np.isnan(x) else 0.0 for x in emb])
+                    struct.pack(f"<{64}f", *emb[:64])  # Use a fixed size of 64
                     for emb in self.embeddings
                 )
                 file.write(struct.pack("<II", CtxSectionType.EMBEDDINGS.value, len(embeddings_data)))
@@ -69,9 +71,9 @@ class CtxFile:
             file.write(struct.pack("<II", CtxSectionType.METADATA.value, len(metadata_json)))
             file.write(metadata_json)
         
+
     def load(self):
-        print("Number of embeddings loaded: ", len(self.embeddings))
-        print("Number of metadata keys loaded: ", len(self.metadata))
+        print("LOADING call")
         try:
             with open(self.file_path, "rb") as file:
                 # Read and verify header
@@ -96,11 +98,14 @@ class CtxFile:
                     elif section_type == CtxSectionType.EMBEDDINGS.value:
                         embeddings_data = file.read(section_length)
                         if embeddings_data:
-                            embedding_size = len(embeddings_data) // 4
+                            embedding_size = 64  # Use a fixed size of 64
+                            num_embeddings = len(embeddings_data) // (embedding_size * 4)
                             self.embeddings = [
-                                list(struct.unpack_from(f"<{embedding_size // len(self.embeddings)}f", embeddings_data, i * embedding_size))
-                                for i in range(len(self.embeddings))
-                            ] if self.embeddings else [list(struct.unpack_from(f"<{embedding_size}f", embeddings_data))]
+                                list(struct.unpack_from(f"<{embedding_size}f", embeddings_data, i * embedding_size * 4))
+                                for i in range(num_embeddings)
+                            ]
+                            for emb in self.embeddings:
+                                print(f"[load] size of embeddings {len(emb)}")
                     elif section_type == CtxSectionType.CONTEXTS.value:
                         contexts_data = file.read(section_length)
                         self.contexts = []
@@ -119,10 +124,11 @@ class CtxFile:
                         self.metadata = json.loads(metadata_json)
                     else:
                         raise ValueError(f"Unknown section type: {section_type}")
-
+                print("Number of embeddings loaded: ", len(self.embeddings))
+                print("Number of metadata keys loaded: ", len(self.metadata))
         except FileNotFoundError:
             pass
-    
+
     def __repr__(self):
         output = "CtxFile:\n\n"
         output += "Header:\n"
@@ -145,7 +151,7 @@ class CtxFile:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.save()
-    
+
 class Ctx:
     def __init__(self, directory="contexts"):
         self.directory = directory
