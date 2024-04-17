@@ -16,12 +16,8 @@ class EmbeddingModel:
         self.device = device
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name).to(self.device)
-        self.model_metadata = {
-            "bert.embedding_length": 512,
-            "bert.context_length": 512
-        }
-        self.embedding_size = self.model_metadata.get("bert.embedding_length", 1024)
-        self.context_length = self.model_metadata.get("bert.context_length", 512)
+        self.dimension = 1024 #hardcoded
+        self.context_length = 512 #hardcoded
         self.embedding_dtype = "float32"
         end_time = time.time()
         logger.debug(f"[EmbeddingModel.__init__] Execution time: {end_time - start_time:.5f} seconds")
@@ -79,9 +75,13 @@ class EmbeddingModel:
 
     def search(self, query_embedding, embeddings, top_k):
         logger.info(f"[EmbeddingModel.search] Searching for top {top_k} similar embeddings")
-        embeddings_tensor = torch.from_numpy(embeddings).to(self.device)
-        query_embedding_tensor = torch.from_numpy(query_embedding).unsqueeze(0).to(self.device)
+        # Ensure embeddings are converted to float32 explicitly
+        embeddings_tensor = torch.from_numpy(embeddings).to(self.device).to(dtype=torch.float32)
+        query_embedding_tensor = torch.from_numpy(query_embedding).unsqueeze(0).to(self.device).to(dtype=torch.float32)
+        
+        # Calculate Hamming distance
         distances = torch.sum(query_embedding_tensor.int() ^ embeddings_tensor.int(), dim=1)
         top_k_indices = torch.topk(distances, top_k, largest=False).indices.cpu().numpy()
-        top_k_distances = distances[top_k_indices].cpu().numpy()
-        return top_k_indices, top_k_distances
+        top_k_scores = distances[top_k_indices].cpu().numpy()
+
+        return top_k_indices, top_k_scores

@@ -12,8 +12,10 @@ import logging
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+
 class VLite:
     def __init__(self, collection=None, device=None, model_name='mixedbread-ai/mxbai-embed-large-v1'):
+        print("welcome to VLite 7.1.2")
         start_time = time.time()
         if device is None:
             if check_cuda_available():
@@ -34,18 +36,22 @@ class VLite:
         try:
             ctx_file = self.ctx.read(collection)
             ctx_file.load()
-            logger.debug(f"[VLite.__init__] Number of embeddings: {len(ctx_file.embeddings)}")
-            logger.debug(f"[VLite.__init__] Number of metadata: {len(ctx_file.metadata)}")
+
             self.index = {
                 chunk_id: {
                     'text': ctx_file.contexts[idx] if idx < len(ctx_file.contexts) else "",
                     'metadata': ctx_file.metadata.get(chunk_id, {}),
-                    'binary_vector': np.array(ctx_file.embeddings[idx]) if idx < len(ctx_file.embeddings) else np.zeros(self.model.embedding_size)
+                    'binary_vector': np.array(ctx_file.embeddings[idx]) if idx < len(ctx_file.embeddings) else np.zeros(self.model.dimension)
                 }
                 for idx, chunk_id in enumerate(ctx_file.metadata.keys())
             }
+            if not self.index:
+                logger.warning(f"[VLite.__init__] Collection file {self.collection} is empty.")
+            else:
+                print(f"in loop rank shape of binary_vector {len(self.index[list(self.index.keys())[0]]['binary_vector'])}")
         except FileNotFoundError:
             logger.warning(f"[VLite.__init__] Collection file {self.collection} not found. Initializing empty attributes.")
+
         end_time = time.time()
         logger.debug(f"[VLite.__init__] Execution time: {end_time - start_time:.5f} seconds")
         logger.info(f"[VLite.__init__] Using device: {self.device}")
@@ -76,6 +82,9 @@ class VLite:
             all_metadata.extend([item_metadata] * len(chunks))
             all_ids.extend([item_id] * len(chunks))
         binary_encoded_data = self.model.embed(all_chunks, precision="binary")
+        print("shape of binary_encoded_data", binary_encoded_data.shape)
+
+
         for idx, (chunk, binary_vector, metadata) in enumerate(zip(all_chunks, binary_encoded_data, all_metadata)):
             chunk_id = f"{item_id}_{idx}"
             self.index[chunk_id] = {
@@ -91,7 +100,11 @@ class VLite:
         logger.info("[VLite.add] Text added successfully.")
         end_time = time.time()
         logger.debug(f"[VLite.add] Execution time: {end_time - start_time:.5f} seconds")
+        print("index", self.index)
+        print("end shape of binary_encoded_data", binary_encoded_data.shape)
         return results
+
+        
 
     def retrieve(self, text=None, top_k=5, metadata=None, return_scores=False):
         start_time = time.time()
@@ -118,6 +131,7 @@ class VLite:
     def rank_and_filter(self, query_binary_vector, top_k, metadata=None):
         start_time = time.time()
         logger.debug(f"[VLite.rank_and_filter] Shape of query vector: {query_binary_vector.shape}")
+        print("here it is", query_binary_vector)    
         query_binary_vector = np.array(query_binary_vector).reshape(-1)
         logger.debug(f"[VLite.rank_and_filter] Shape of query vector after reshaping: {query_binary_vector.shape}")
         # Collect all binary vectors and ensure they all have the same shape as the query vector
@@ -125,16 +139,18 @@ class VLite:
         mismatch_count = 0
         for item_id, item in self.index.items():
             binary_vector = item['binary_vector']
+            print("in loop rank shape of binary_vector", len(binary_vector))
             if len(binary_vector) == len(query_binary_vector):
                 binary_vectors.append(binary_vector)
             else:
                 mismatch_count += 1
                 logger.warning(f"[VLite.rank_and_filter] Skipping vector with ID {item_id} of length {len(binary_vector)}, expected length {len(query_binary_vector)}")
+                print("stupid error", binary_vector)
         if mismatch_count > 0:
             logger.warning(f"[VLite.rank_and_filter] Skipped {mismatch_count} vectors due to length mismatch.")
         # Convert list of binary vectors to a NumPy array
         if binary_vectors:
-            corpus_binary_vectors = np.array(binary_vectors)
+            corpus_binary_vectors = np.array(binary_vectors, dtype=np.float32)
             logger.debug(f"[VLite.rank_and_filter] Shape of corpus binary vectors array: {corpus_binary_vectors.shape}")
         else:
             raise ValueError("No valid binary vectors found for comparison.")
@@ -237,10 +253,15 @@ class VLite:
         with self.ctx.create(self.collection) as ctx_file:
             ctx_file.set_header(
                 embedding_model="mixedbread-ai/mxbai-embed-large-v1",
-                embedding_size=self.model.model_metadata.get('bert.embedding_length', 1024),
+                embedding_size=64,  # Set the correct embedding size here
                 embedding_dtype=self.model.embedding_dtype,
-                context_length=self.model.model_metadata.get('bert.context_length', 512)
+                context_length=self.model.context_length
             )
+            # print the size of the embeddings
+            if self.index:
+                print("[save] size of embeddings", len(self.index[list(self.index.keys())[0]]['binary_vector']))
+            else:
+                print("[save] size of embeddings: 0")
             for chunk_id, chunk_data in self.index.items():
                 ctx_file.add_embedding(chunk_data['binary_vector'])
                 ctx_file.add_context(chunk_data['text'])
