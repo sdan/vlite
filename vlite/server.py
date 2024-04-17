@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Union
 from vlite.main import VLite
 from vlite.utils import process_file, process_pdf, process_webpage
-from vlite import __version__
+from setup import __version__
 
 app = FastAPI(
     title="VLite API",

@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-from vlite import __version__
+__version__ = '0.2.3'
 
 setup(
     name='vlite',
@@ -18,14 +18,14 @@ setup(
         'beautifulsoup4',
         'huggingface_hub',
         'tiktoken',
-        'torch==2.2.2', 
-        'transformers==4.39.0', 
+        'torch==2.2.2',
+        'transformers==4.39.0',
         'tokenizers==0.15.2',
     ],
     extras_require={
         'ocr': ['surya-ocr-vlite']
     },
-    python_requires='>=3.10',  # Specify the Python version requirement
+    python_requires='>=3.10',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -33,6 +33,6 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.10',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'License :: OSI Approved :: GNU AGPLv3'
+        'License :: OSI Approved :: GNU Affero General Public License v3'
     ]
 )
