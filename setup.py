@@ -18,7 +18,8 @@ setup(
         'beautifulsoup4',
         'transformers',
         'huggingface_hub',
-        'tiktoken'
+        'tiktoken',
+        'torch',
     ],
     extras_require={
         'ocr': ['surya-ocr-vlite']
