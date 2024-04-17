@@ -1,8 +1,10 @@
 from setuptools import setup, find_packages
 
+from vlite import __version__
+
 setup(
     name='vlite',
-    version='0.2.2',
+    version=__version__,
     author='Surya Dantuluri',
     author_email='surya@suryad.com',
     description='A simple and blazing fast vector database',
