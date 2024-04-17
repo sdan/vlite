@@ -12,7 +12,7 @@ setup(
         'PyPDF2',
         'docx2txt',
         'pandas',
-        'requests'
+        'requests',
         'beautifulsoup4',
         'huggingface_hub',
         'tiktoken',
