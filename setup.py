@@ -10,7 +10,7 @@ setup(
     description='A simple and blazing fast vector database',
     packages=find_packages(),
     install_requires=[
-        'transformers',
+        'numpy',
         'PyPDF2',
         'docx2txt',
         'pandas',
