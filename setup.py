@@ -1,10 +1,8 @@
 from setuptools import setup, find_packages
 
-from vlite import __version__
-
 setup(
     name='vlite',
-    version=__version__,
+    version='0.2.1',
     author='Surya Dantuluri',
     author_email='surya@suryad.com',
     description='A simple and blazing fast vector database',
@@ -14,13 +12,25 @@ setup(
         'PyPDF2',
         'docx2txt',
         'pandas',
-        'Requests',
+        'requests'
         'beautifulsoup4',
         'huggingface_hub',
         'tiktoken',
-        'torch',
+        'torch==2.2.2', 
+        'transformers==4.39.0', 
+        'tokenizers==0.15.2',
     ],
     extras_require={
         'ocr': ['surya-ocr-vlite']
     },
+    python_requires='>=3.10',  # Specify the Python version requirement
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'Natural Language :: English',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3.10',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'License :: OSI Approved :: GNU AGPLv3'
+    ]
 )
