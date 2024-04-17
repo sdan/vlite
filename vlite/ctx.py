@@ -4,6 +4,11 @@ import json
 from enum import Enum
 from typing import List, Dict, Union
 import numpy as np
+import logging
+
+
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class CtxSectionType(Enum):
     HEADER = 0
@@ -43,8 +48,6 @@ class CtxFile:
         self.metadata[key] = value
         
     def save(self):
-        print("Number of embeddings to save: ", len(self.embeddings))
-        print("Number of metadata keys to save: ", len(self.metadata))
         with open(self.file_path, "wb") as file:
             file.write(self.MAGIC_NUMBER)
             file.write(struct.pack("<I", self.VERSION))
@@ -54,8 +57,6 @@ class CtxFile:
             file.write(header_json)
 
             if self.embeddings:
-                for emb in self.embeddings:
-                    print(f"[save] size of embeddings {len(emb)}")
                 embeddings_data = b"".join(
                     struct.pack(f"<{64}f", *emb[:64])  # Use a fixed size of 64
                     for emb in self.embeddings
@@ -73,7 +74,6 @@ class CtxFile:
         
 
     def load(self):
-        print("LOADING call")
         try:
             with open(self.file_path, "rb") as file:
                 # Read and verify header
@@ -104,8 +104,6 @@ class CtxFile:
                                 list(struct.unpack_from(f"<{embedding_size}f", embeddings_data, i * embedding_size * 4))
                                 for i in range(num_embeddings)
                             ]
-                            for emb in self.embeddings:
-                                print(f"[load] size of embeddings {len(emb)}")
                     elif section_type == CtxSectionType.CONTEXTS.value:
                         contexts_data = file.read(section_length)
                         self.contexts = []
@@ -117,15 +115,13 @@ class CtxFile:
                                 context = contexts_data[offset : offset + context_length].decode("utf-8")
                                 self.contexts.append(context)
                             except UnicodeDecodeError as e:
-                                print(f"Error decoding context: {e}")
+                                logger.error(f"Error decoding context: {e}")
                             offset += context_length
                     elif section_type == CtxSectionType.METADATA.value:
                         metadata_json = file.read(section_length).decode("utf-8")
                         self.metadata = json.loads(metadata_json)
                     else:
                         raise ValueError(f"Unknown section type: {section_type}")
-                print("Number of embeddings loaded: ", len(self.embeddings))
-                print("Number of metadata keys loaded: ", len(self.metadata))
         except FileNotFoundError:
             pass
 

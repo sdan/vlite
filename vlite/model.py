@@ -75,13 +75,16 @@ class EmbeddingModel:
 
     def search(self, query_embedding, embeddings, top_k):
         logger.info(f"[EmbeddingModel.search] Searching for top {top_k} similar embeddings")
-        # Ensure embeddings are converted to float32 explicitly
         embeddings_tensor = torch.from_numpy(embeddings).to(self.device).to(dtype=torch.float32)
         query_embedding_tensor = torch.from_numpy(query_embedding).unsqueeze(0).to(self.device).to(dtype=torch.float32)
         
         # Calculate Hamming distance
         distances = torch.sum(query_embedding_tensor.int() ^ embeddings_tensor.int(), dim=1)
+        
+        top_k = min(top_k, len(embeddings))  # Limit top_k to the number of embeddings
         top_k_indices = torch.topk(distances, top_k, largest=False).indices.cpu().numpy()
+
+        
         top_k_scores = distances[top_k_indices].cpu().numpy()
 
         return top_k_indices, top_k_scores

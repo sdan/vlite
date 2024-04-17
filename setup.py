@@ -1,11 +1,13 @@
 from setuptools import setup, find_packages
 
+from vlite import __version__
+
 setup(
     name='vlite',
-    version='0.2.1',
+    version=__version__,
     author='Surya Dantuluri',
     author_email='surya@suryad.com',
-    description='A simple vector database that stores vectors in a numpy array.',
+    description='A simple and blazing fast vector database',
     packages=find_packages(),
     install_requires=[
         'numpy',
@@ -14,7 +16,7 @@ setup(
         'pandas',
         'Requests',
         'beautifulsoup4',
-        'llama-cpp-python',
+        'transformers',
         'huggingface_hub',
         'tiktoken'
     ],
