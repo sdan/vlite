@@ -260,10 +260,10 @@ class VLite:
         logger.info("[VLite.clear] Collection cleared.")
 
     def info(self):
-        logger.info("[VLite.info] Collection Information:")
-        logger.info(f"[VLite.info] Items: {self.count()}")
-        logger.info(f"[VLite.info] Collection file: {self.collection}")
-        logger.info(f"[VLite.info] Embedding model: {self.model}")
+        print("[VLite.info] Collection Information:")
+        print(f"[VLite.info] Items: {self.count()}")
+        print(f"[VLite.info] Collection file: {self.collection}")
+        print(f"[VLite.info] Embedding model: {self.model}")
 
     def __repr__(self):
         return f"VLite(collection={self.collection}, device={self.device}, model={self.model})"

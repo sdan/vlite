@@ -9,11 +9,12 @@ there is no database you need to set up, no server to run, and no complex config
 ## Features
 
 - 🔥 *Fastest* vector db retrieval with binary embeddings
-- 🔋 Made for RAG -- with embedding generation baked in
+- 🔋 Made for RAG -- with embedding generation with [mixedbread embed-large](https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1) baked in
 - 🍪 CTX (context) file format, a novel abstraction for storing user context similar to browser cookies
 - Ingest text, PDF, CSV, PPTX, and webpages
 - Chunking, metadata filtering, PDF OCR support for extracting text from scanned PDFs
-- **Over 77.95% faster than Chroma on indexing, and 422% faster on retrieval**
+- **>77.95% faster than Chroma on indexing, >422% faster on retrieval, and >3.6x smaller on disk**
+- 🦜 available in LangChain since vlite v0.2.2
 
 
 ## Installation
@@ -42,6 +43,30 @@ vdb.add(process_pdf("attention-is-all-you-need.pdf", use_ocr=True))
 
 results = vdb.retrieve("how do transformers work?")
 print(results)
+```
+
+### Usage with LangChain
+```python
+from langchain.document_loaders import TextLoader
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.vectorstores import VLite
+
+# Load the document and split it into chunks
+loader = TextLoader("path/to/document.txt")
+documents = loader.load()
+
+# Create a VLite instance
+vlite = VLite(collection="my_collection")
+
+# Add documents to the VLite vector database
+vlite.add_documents(documents)
+
+# Perform a similarity search
+query = "What is the main topic of the document?"
+docs = vlite.similarity_search(query)
+
+# Print the most relevant document
+print(docs[0].page_content)
 ```
 
 ## About
