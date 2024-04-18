@@ -14,7 +14,7 @@ there is no database you need to set up, no server to run, and no complex config
 - Ingest text, PDF, CSV, PPTX, and webpages
 - Chunking, metadata filtering, PDF OCR support for extracting text from scanned PDFs
 - **>77.95% faster than Chroma on indexing, >422% faster on retrieval, and >3.6x smaller on disk**
-- 🦜 available in LangChain since vlite v0.2.2
+- 🦜 [Available in LangChain](https://python.langchain.com/docs/integrations/vectorstores/vlite/) since vlite v0.2.2
 
 
 ## Installation
