@@ -8,7 +8,7 @@ there is no database you need to set up, no server to run, and no complex config
 
 ## Features
 
-- 🔥 *Fastest* vector db retrieval with binary embeddings
+- 🔥 *Fastest* vector db retrieval with binary embeddings, less than 1.1s to search 500k documents
 - 🔋 Made for RAG -- with embedding generation with [mixedbread embed-large](https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1) baked in
 - 🍪 CTX (context) file format, a novel abstraction for storing user context similar to browser cookies
 - Ingest text, PDF, CSV, PPTX, and webpages
