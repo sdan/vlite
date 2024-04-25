@@ -8,5 +8,4 @@ Requests
 beautifulsoup4
 huggingface_hub
 tiktoken
-onnxruntime==1.17.1
 tokenizers==0.15.2

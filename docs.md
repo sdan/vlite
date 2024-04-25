@@ -146,6 +146,20 @@ vlite uses the CTX (Context) file format for efficient storage and retrieval of 
 
 The CTX file format is designed to be memory-efficient and allows for fast loading and saving of embeddings and associated data.
 
+| Section       | Byte Size   | Example                                                                                      |
+|---------------|-------------|----------------------------------------------------------------------------------------------|
+| Magic Number  | 4 bytes     | `b"CTXF"`                                                                                    |
+| Version       | 4 bytes     | `1` which results in something like `b'\x01\x00\x00\x00'`                 |
+| Header        | Variable    | JSON string of the header dict, encoded in UTF-8 and prefixed with its length in bytes.      |
+|               |             | Example JSON: `{"embedding_model": "default", "embedding_size": 64, "embedding_dtype": "float32", "context_length": 512}` |
+| Embeddings    | Variable    | Each embedding is 64 dimensions of `float32`. 64 floats * 4 bytes each = 256 bytes.             |
+|               |             | An embedding example might look like a sequence of 256 bytes after packing.                   |
+| Contexts      | Variable    | Prefixed with the length of the string in bytes followed by the string encoded in UTF-8.      |
+|               |             | Example: A context string with its length prefix.                                            |
+| Metadata      | Variable    | JSON string of the metadata dict, encoded in UTF-8 and prefixed with its length in bytes.     |
+|               |             | Example JSON: `{"created_at": "2024-04-18", ...}`                                             |
+
+
 ### Creating a CTX File
 To create a new CTX file, use the `create` method of the `Ctx` class:
 ```python
