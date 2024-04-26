@@ -122,6 +122,13 @@ class VLite:
 
     def rank_and_filter(self, query_binary_vector, top_k, metadata=None):
         start_time = time.time()
+        
+        # If metadata filter is provided, retrieve more items initially
+        if metadata:
+            initial_top_k = top_k * 4  # Adjust this factor as needed
+        else:
+            initial_top_k = top_k
+        
         logger.debug(f"[VLite.rank_and_filter] Shape of query vector: {query_binary_vector.shape}")
         query_binary_vector = np.array(query_binary_vector).reshape(-1)
         logger.debug(f"[VLite.rank_and_filter] Shape of query vector after reshaping: {query_binary_vector.shape}")
@@ -133,9 +140,9 @@ class VLite:
             logger.debug(f"[VLite.rank_and_filter] Shape of corpus binary vectors array: {corpus_binary_vectors.shape}")
         else:
             raise ValueError("No valid binary vectors found for comparison.")
-        top_k_indices, top_k_scores = self.model.search(query_binary_vector, corpus_binary_vectors, top_k)
-        logger.debug(f"[VLite.rank_and_filter] Top {top_k} indices: {top_k_indices}")
-        logger.debug(f"[VLite.rank_and_filter] Top {top_k} scores: {top_k_scores}")
+        top_k_indices, top_k_scores = self.model.search(query_binary_vector, corpus_binary_vectors, initial_top_k)
+        logger.debug(f"[VLite.rank_and_filter] Top {initial_top_k} indices: {top_k_indices}")
+        logger.debug(f"[VLite.rank_and_filter] Top {initial_top_k} scores: {top_k_scores}")
         logger.debug(f"[VLite.rank_and_filter] No. of items in the collection: {len(self.index)}")
         logger.debug(f"[VLite.rank_and_filter] Vlite count: {self.count()}")
 

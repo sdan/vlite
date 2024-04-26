@@ -4,6 +4,7 @@ import json
 from enum import Enum
 from typing import List, Union, Dict
 
+# not implemented
 class BinaryVectorIndex:
     def __init__(self, embedding_size=64):
         self.index = {}
