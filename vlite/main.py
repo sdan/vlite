@@ -90,24 +90,24 @@ class VLite:
         if item_id not in [result[0] for result in results]:
             results.append((item_id, binary_encoded_data, metadata))
 
-        self.save()
-        logger.info("[VLite.add] Text added successfully.")
+        # self.save()
+        # print("[VLite.add] Text added successfully.")
         end_time = time.time()
         logger.debug(f"[VLite.add] Execution time: {end_time - start_time:.5f} seconds")
         return results
 
         
 
-    def retrieve(self, text=None, top_k=5, metadata=None, return_scores=False):
+    def retrieve(self, text=None, top_k=5, metadata=None, return_scores=False, top_k_multiplier=4):
         start_time = time.time()
-        logger.info("[VLite.retrieve] Retrieving similar texts...")
+        print("[VLite.retrieve] Retrieving similar texts...")
         if text:
-            logger.info(f"[VLite.retrieve] Retrieving top {top_k} similar texts for query: {text}")
+            print(f"[VLite.retrieve] Retrieving top {top_k} similar texts for query: {text}")
             query_binary_vectors = self.model.embed(text, precision="binary")
             # Perform search on the query binary vectors
             results = []
             for query_binary_vector in query_binary_vectors:
-                chunk_results = self.rank_and_filter(query_binary_vector, top_k, metadata)
+                chunk_results = self.rank_and_filter(query_binary_vector, top_k, metadata, top_k_multiplier)
                 results.extend(chunk_results)
             # Sort the results by similarity score
             results.sort(key=lambda x: x[1])
