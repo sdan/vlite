@@ -5,10 +5,13 @@ from enum import Enum
 from typing import List, Dict, Union
 import numpy as np
 import logging
-
+from posthog import Posthog
+from constants import Constants
+import uuid
 
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+posthog = Posthog(project_api_key=Constants.TELEMETRY_POSTHOG, host=Constants.TELEMETRY_POSTHOG_HOST, disable_geoip=False)
 
 class CtxSectionType(Enum):
     HEADER = 0
@@ -31,6 +34,8 @@ class CtxFile:
         self.embeddings = []
         self.contexts = []
         self.metadata = {}
+        # Anonymized telemetry
+        self.anon_user_id = uuid.uuid4().hex if not os.path.exists(f"./contexts/{uuid.uuid4().hex}.telm") else open(f"./contexts/{uuid.uuid4().hex}.telm", "r").read()
 
     def set_header(self, embedding_model: str, embedding_size: int, embedding_dtype: str, context_length: int):
         self.header["embedding_model"] = embedding_model
@@ -49,6 +54,10 @@ class CtxFile:
         
     def save(self):
         with open(self.file_path, "wb") as file:
+            # Anonymized telemetry
+            if not os.path.exists(f"./contexts/{self.anon_user_id}.telm"): open(f"./contexts/{self.anon_user_id}.telm", "w").write(self.anon_user_id)            
+            posthog.capture(self.anon_user_id,'ctx_save',{'file_path': self.file_path,'header': self.header})
+            
             file.write(self.MAGIC_NUMBER)
             file.write(struct.pack("<I", self.VERSION))
 
@@ -76,6 +85,10 @@ class CtxFile:
     def load(self):
         try:
             with open(self.file_path, "rb") as file:
+                # Anonymized telemetry
+                if not os.path.exists(f"./contexts/{self.anon_user_id}.telm"): open(f"./contexts/{self.anon_user_id}.telm", "w").write(self.anon_user_id)
+                posthog.capture(self.anon_user_id,'ctx_load',{'file_path': self.file_path})
+                
                 # Read and verify header
                 magic_number = file.read(len(self.MAGIC_NUMBER))
                 if magic_number != self.MAGIC_NUMBER:

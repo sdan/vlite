@@ -21,6 +21,7 @@ setup(
         'torch==2.2.2',
         'transformers==4.39.0',
         'tokenizers==0.15.2',
+        'posthog',
     ],
     extras_require={
         'ocr': ['surya-ocr-vlite']

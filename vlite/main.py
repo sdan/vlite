@@ -7,15 +7,22 @@ import datetime
 from .ctx import Ctx
 import time
 import logging
+from posthog import Posthog
+from constants import Constants
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
+posthog = Posthog(project_api_key=Constants.TELEMETRY_POSTHOG, host=Constants.TELEMETRY_POSTHOG_HOST, disable_geoip=False)
 
 class VLite:
     def __init__(self, collection=None, device=None, model_name='mixedbread-ai/mxbai-embed-large-v1'):
         start_time = time.time()
+        # Anonymized telemetry
+        self.anon_user_id = uuid4().hex if not os.path.exists(f"./contexts/{uuid4().hex}.telm") else open(f"./contexts/{uuid4().hex}.telm", "r").read()
+        posthog.capture(self.anon_user_id,'vlite_init',{'collection': collection,'device': device,'model_name': model_name})
+        
         if device is None:
             if check_cuda_available():
                 device = 'cuda'
@@ -120,12 +127,12 @@ class VLite:
             else:
                 return [(idx, self.index[idx]['text'], self.index[idx]['metadata']) for idx, _ in results]
 
-    def rank_and_filter(self, query_binary_vector, top_k, metadata=None):
+    def rank_and_filter(self, query_binary_vector, top_k, metadata=None, top_k_multiplier=4):
         start_time = time.time()
         
         # If metadata filter is provided, retrieve more items initially
         if metadata:
-            initial_top_k = top_k * 4  # Adjust this factor as needed
+            initial_top_k = top_k * top_k_multiplier  # Adjust this factor as needed
         else:
             initial_top_k = top_k
         
