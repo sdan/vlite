@@ -6,7 +6,7 @@ from typing import List, Dict, Union
 import numpy as np
 import logging
 from posthog import Posthog
-from constants import Constants
+from .constants import Constants
 import uuid
 
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')

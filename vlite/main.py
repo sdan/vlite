@@ -8,7 +8,7 @@ from .ctx import Ctx
 import time
 import logging
 from posthog import Posthog
-from constants import Constants
+from .constants import Constants
 import os
 
 # Configure logging
