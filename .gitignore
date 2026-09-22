@@ -67,3 +67,11 @@ env
 
 tests/notebook.ipynb
 tests/notebook2.ipynb
+
+# Local scratch files
+shakespeare_viz.py
+test_visualize.py
+test_visualize_standalone.py
+tests/attention.pdf
+tests/chromadb/
+tests/querytest.ipynb

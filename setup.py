@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-__version__ = '0.2.6'
+__version__ = '0.3.0'  # breaking: new API and .ctx v2 format
 
 setup(
     name='vlite',
@@ -10,22 +10,10 @@ setup(
     description='A simple and blazing fast vector database',
     packages=find_packages(),
     install_requires=[
-        'numpy',
-        'PyPDF2',
-        'docx2txt',
-        'pandas',
-        'requests',
-        'beautifulsoup4',
-        'huggingface_hub',
-        'tiktoken',
-        'torch==2.2.2',
-        'transformers==4.39.0',
-        'tokenizers==0.15.2',
-        'posthog',
+        'numpy>=2',  # np.bitwise_count
+        'torch',
+        'transformers',
     ],
-    extras_require={
-        'ocr': ['surya-ocr-vlite']
-    },
     python_requires='>=3.10',
     classifiers=[
         'Development Status :: 4 - Beta',
