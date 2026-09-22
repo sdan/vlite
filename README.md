@@ -26,19 +26,36 @@ pip install vlite
 ```python
 from vlite import VLite
 
-vdb = VLite("notes")                      # loads contexts/notes.ctx if it exists
-ids = vdb.add("hello world", metadata={"artist": "adele"})
-vdb.add(open("attention.txt").read())     # long texts are split into chunks automatically
+db = VLite("borges")
+db.add(["a library of hexagonal rooms that holds every possible book",
+        "a man who remembers every leaf of every tree he has ever seen",
+        "a garden where time forks into every possible future"])
 
-for id, text, metadata, distance in vdb.retrieve("how do transformers work?", top_k=3):
-    print(distance, text[:80])
+for _, text, _, distance in db.retrieve("parallel timelines", top_k=2):
+    print(distance, text)
 
-vdb.retrieve("hello", where={"artist": "adele"})  # filter on metadata
-vdb.delete(ids)
-vdb.save()                                # nothing touches disk until you call save()
+db.save()
 ```
 
-Bring your own loaders: vlite takes strings. For PDFs, `pypdf` or `pymupdf` get you there in two lines.
+```
+142 a garden where time forks into every possible future
+193 a man who remembers every leaf of every tree he has ever seen
+```
+
+each line is a borges story. each result is `(id, text, metadata, distance)`, and lower distance means closer. `save()` writes everything to `contexts/borges.ctx`, and `VLite("borges")` picks it back up next time.
+
+tag things with metadata, then filter on it:
+
+```python
+db.add(["a point in a cellar that contains every other point in the universe",
+        "a coin that, once seen, can never be put out of mind"],
+       metadata={"book": "the aleph"})
+
+db.retrieve("everything at once", top_k=1)                               # the garden
+db.retrieve("everything at once", top_k=1, where={"book": "the aleph"})  # the aleph
+```
+
+long texts get chunked for you. vlite only takes strings, so bring your own pdf reader.
 
 ## About
 
