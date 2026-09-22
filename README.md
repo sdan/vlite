@@ -9,7 +9,7 @@ there is no database you need to set up, no server to run, and no complex config
 ## Features
 
 - 🔥 *Fastest* vector db retrieval with binary embeddings, less than 1.1s to search 500k documents
-- 🔋 Made for RAG -- with embedding generation with [mixedbread embed-large](https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1) baked in
+- 🔋 Made for RAG -- embeddings from [mixedbread embed-xsmall](https://huggingface.co/mixedbread-ai/mxbai-embed-xsmall-v1) baked in, run in plain numpy. numpy is the only dependency
 - 🍪 CTX (context) file format, a novel abstraction for storing user context similar to browser cookies
 - Long texts are chunked to the model's 512-token window automatically, metadata filtering built in
 - **>77.95% faster than Chroma on indexing, >422% faster on retrieval, and >3.6x smaller on disk**
@@ -38,11 +38,11 @@ db.save()
 ```
 
 ```
-142 a garden where time forks into every possible future
-193 a man who remembers every leaf of every tree he has ever seen
+148 a garden where time forks into every possible future
+167 a man who remembers every leaf of every tree he has ever seen
 ```
 
-each line is a borges story. each result is `(id, text, metadata, distance)`, and lower distance means closer. `save()` writes everything to `contexts/borges.ctx`, and `VLite("borges")` picks it back up next time.
+each line is a borges story. each result is `(id, text, metadata, distance)`, and lower distance means closer. `save()` writes everything to `contexts/borges.ctx`, and `VLite("borges")` picks it back up next time. the first run downloads the model (48 MB) to `~/.cache/vlite`.
 
 tag things with metadata, then filter on it:
 
@@ -51,8 +51,8 @@ db.add(["a point in a cellar that contains every other point in the universe",
         "a coin that, once seen, can never be put out of mind"],
        metadata={"book": "the aleph"})
 
-db.retrieve("everything at once", top_k=1)                               # the garden
-db.retrieve("everything at once", top_k=1, where={"book": "the aleph"})  # the aleph
+db.retrieve("perfect memory", top_k=1)                               # the man who remembers everything
+db.retrieve("perfect memory", top_k=1, where={"book": "the aleph"})  # the coin you can't forget
 ```
 
 long texts get chunked for you. vlite only takes strings, so bring your own pdf reader.

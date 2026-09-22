@@ -9,11 +9,7 @@ setup(
     author_email='surya@suryad.com',
     description='A simple and blazing fast vector database',
     py_modules=['vlite'],  # the whole library is vlite.py
-    install_requires=[
-        'numpy>=2',  # np.bitwise_count
-        'torch',
-        'transformers',
-    ],
+    install_requires=['numpy>=2'],  # np.bitwise_count; the tokenizer and model are plain numpy in vlite.py
     python_requires='>=3.10',
     classifiers=[
         'Development Status :: 4 - Beta',
