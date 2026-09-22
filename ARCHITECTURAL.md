@@ -1,6 +1,6 @@
 # vlite architecture
 
-vlite v1 is one file, `vlite/main.py` (~145 lines). Read it top to bottom; there is nothing else.
+vlite v1 is one file, `vlite.py` (~160 lines). Read it top to bottom; there is nothing else.
 The v2 direction (a small RL-trained search model) lives in `TODO.md` / `RESEARCH.md` and does not share code with v1.
 
 ## Data flow
@@ -21,11 +21,13 @@ The collection is four parallel columns, one row per chunk:
 
 | column     | type                  | notes                                          |
 |------------|-----------------------|------------------------------------------------|
-| `ids`      | `list[str]`           | one id per `add()`ed text; its chunks share it |
-| `texts`    | `list[str]`           | chunk text, exactly as given (not re-decoded)  |
-| `metadata` | `list[dict]`          | copied per row, so chunks never alias          |
+| `ids`      | `object[N]` (str)     | one id per `add()`ed text; its chunks share it |
+| `texts`    | `object[N]` (str)     | chunk text, exactly as given (not re-decoded)  |
+| `metadata` | `object[N]` (dict)    | copied per row, so chunks never alias          |
 | `bits`     | `np.uint8[N, 64]`     | packed sign bits, one contiguous buffer        |
 
+All four are numpy arrays, so every row operation is one expression over `cols`:
+`add` concatenates, `delete` applies `~mask`, `get`/`retrieve` index with `mask(ids, where)`.
 Search scans `bits` directly. Nothing is rebuilt per query.
 
 ## `.ctx` file (v2)
@@ -44,8 +46,4 @@ b"CTXF" | u32 version=2 | u32 n | n bytes of JSON {model, ids, texts, metadata} 
 - **Filter before search.** Post-filtering a top-k·m candidate list can silently return fewer than k results.
 - **Explicit `save()`.** Mutations are in-memory only, so you always know when disk changes.
 - **Strings in, tuples out.** File loaders (PDF/DOCX/CSV/web/OCR), the FastAPI server, telemetry, and the LangChain surface were removed. Each pulled in heavy dependencies or was broken, and none is core to "embed, pack, search, persist".
-
-## Tests
-
-`tests/unit.py` loads the real model once per run. Each test pins a bug the old code had:
-popcount vs. summed XOR, truncation vs. chunking, post- vs. pre-filtering, and duplicate-on-save.
+- **No test suite.** Bugs the old code had, so any rewrite should re-check them: summed XOR instead of popcount, truncation instead of chunking, post- instead of pre-filtering, and duplicate-on-save.

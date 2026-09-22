@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 __version__ = '0.3.0'  # breaking: new API and .ctx v2 format
 
@@ -8,7 +8,7 @@ setup(
     author='Surya Dantuluri',
     author_email='surya@suryad.com',
     description='A simple and blazing fast vector database',
-    packages=find_packages(),
+    py_modules=['vlite'],  # the whole library is vlite.py
     install_requires=[
         'numpy>=2',  # np.bitwise_count
         'torch',
